@@ -1,81 +1,97 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
-"""
-@ Date        : 2024/11/26 下午5:29
-@ Author      : Administrator
-@ File        : conftest.py
-@ Description : 功能描述
-"""
+import os
 import pytest
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-from appium import webdriver as appium_driver
+from appium import webdriver as appium_webdriver
 from appium.options.common.base import AppiumOptions
-import os
-import shutil
 
+# 定义driver存放路径
+DRIVER_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'drivers')
+if not os.path.exists(DRIVER_PATH):
+    os.makedirs(DRIVER_PATH)
 
-def setup_chromedriver(version, identifier):
+def get_web_driver_path():
+    """获取web端ChromeDriver路径"""
+    driver_path = ChromeDriverManager().install()
+    web_driver_path = os.path.join(DRIVER_PATH, 'chromedriver_web.exe')
+    if os.path.exists(driver_path) and not os.path.exists(web_driver_path):
+        import shutil
+        shutil.copy2(driver_path, web_driver_path)
+    return web_driver_path
+
+def get_app_driver_path():
+    """获取app端ChromeDriver路径"""
+    driver_path = ChromeDriverManager(driver_version="95.0.4638.74").install()
+    app_driver_path = os.path.join(DRIVER_PATH, 'chromedriver_app.exe')
+    if os.path.exists(driver_path) and not os.path.exists(app_driver_path):
+        import shutil
+        shutil.copy2(driver_path, app_driver_path)
+    return app_driver_path
+
+@pytest.fixture(scope='session')
+def web_driver():
     """
-    Feat: Download and set the ChromeDriver path.
-    :param version:
-    :param identifier:
-    :return: target path.
+    Web端测试driver配置
+    使用webdriver_manager自动管理chrome driver版本
     """
-    drivers_dir = os.path.join(os.path.dirname(__file__), 'drivers')
-    if not os.path.exists(drivers_dir):
-        os.makedirs(drivers_dir)
+    try:
+        # 显式下载并复制 ChromeDriver
+        driver_path = get_web_driver_path()
+        print(f"Web ChromeDriver path: {driver_path}")
+        
+        service = Service(executable_path=driver_path)
+        options = webdriver.ChromeOptions()
+        options.add_argument('--start-maximized')
+        options.add_argument('--ignore-certificate-errors')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        # 添加调试选项
+        options.add_argument('--verbose')
+        options.add_argument('--log-level=3')
+        
+        driver = webdriver.Chrome(service=service, options=options)
+        print("WebDriver 初始化成功")
+        yield driver
+    except Exception as e:
+        print(f"WebDriver 初始化失败: {str(e)}")
+        raise
+    finally:
+        if 'driver' in locals():
+            driver.quit()
 
-    # Download the specific version of ChromeDriver.
-    driver_path = ChromeDriverManager(version).install()
-
-    # Move the downloaded driver to the drivers directory and rename.
-    target_path = os.path.join(drivers_dir, f'chromedriver_{identifier}.exe')
-    shutil.move(driver_path, target_path)
-
-    return target_path
-
-
-@pytest.fixture(scope="session")
-def web_driver(request):
-    web_driver_path = setup_chromedriver(None, "web")
-    options = webdriver.ChromeOptions()
-    service = ChromeService(executable_path=web_driver_path)
-    driver = webdriver.Chrome(service=service, options=options)
-    yield driver
-    driver.quit()
-
-
-@pytest.fixture(scope="session")
-def app_driver(request):
-    app_driver_path = setup_chromedriver("95.0.4638.74", "appium")
-    options = AppiumOptions()
-    options.load_capabilities({
-        "appium:appPackage": "com.android.browser",
-        "appium:appActivity": ".BrowserActivity",
-        "platformName": "Android",
-        "appium:automationName": "uiautomator2",
-        "appium:deviceName": "127.0.0.1:16384",
-        "appium:ensureWebviewsHavePages": True,
-        "appium:nativeWebScreenshot": True,
-        "appium:newCommandTimeout": 3600,
-        "appium:connectHardwareKeyboard": True
-    })
-    options.app = os.path.join(os.path.dirname(__file__), 'datas', 'apk', 'yangli.apk')  # Adjust the path as needed
-    options.chromedriver_executable = app_driver_path
-    driver = appium_driver.Remote("http://127.0.0.1:4723", options=options)
-    yield driver
-    driver.quit()
-
-
-@pytest.fixture(scope="function")
-def base_case_web(web_driver):
-    from utils.base_util import BaseUtil
-    return BaseUtil(web_driver)
-
-
-@pytest.fixture(scope="function")
-def base_case_app(app_driver):
-    from utils.base_util import BaseUtil
-    return BaseUtil(app_driver)
+@pytest.fixture(scope='session')
+def app_driver():
+    """
+    App端测试driver配置
+    使用Android System WebView 95.0.4638.74版本对应的chromedriver
+    """
+    try:
+        # 显式下载并复制 ChromeDriver
+        driver_path = get_app_driver_path()
+        print(f"App ChromeDriver path: {driver_path}")
+        
+        options = AppiumOptions()
+        options.load_capabilities({
+            "appium:appPackage": "com.android.browser",
+            "appium:appActivity": ".BrowserActivity",
+            "platformName": "Android",
+            "appium:automationName": "uiautomator2",
+            "appium:deviceName": "127.0.0.1:16384",
+            "appium:ensureWebviewsHavePages": True,
+            "appium:nativeWebScreenshot": True,
+            "appium:newCommandTimeout": 3600,
+            "appium:connectHardwareKeyboard": True,
+            "appium:chromedriverExecutable": driver_path,
+            "appium:noReset": True
+        })
+        
+        driver = appium_webdriver.Remote("http://127.0.0.1:4723", options=options)
+        print("AppDriver 初始化成功")
+        yield driver
+    except Exception as e:
+        print(f"AppDriver 初始化失败: {str(e)}")
+        raise
+    finally:
+        if 'driver' in locals():
+            driver.quit()

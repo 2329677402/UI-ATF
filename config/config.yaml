@@ -1,0 +1,55 @@
+project_name: UI-ATF
+
+env: 测试环境
+# 测试人员名称，作用于自动生成代码的作者，以及发送企业微信、钉钉通知的测试负责人
+tester_name: Poco
+
+# 域名1
+host: http://192.168.124.73:8008/login
+# 域名2，支持多个域名配置
+app_host:
+
+browser: Chrome
+
+# 报告通知类型：0: 不发送通知 1：钉钉通知 2：企业微信通知 3、邮箱通知 4、飞书通知
+notification_type: 0
+
+# 邮箱通知
+email:
+  # 发送人邮箱
+  send_user: 3157043973@qq.com
+  email_host: smtp.qq.com
+  # 自己到QQ邮箱中配置stamp_key
+  stamp_key: bfqjyfcodesjdfef
+  # 收件人邮箱
+  send_list: 3157043973@qq.com
+
+# 钉钉通知
+ding_talk:
+  # 钉钉机器人Webhook地址
+  webhook: https://oapi.dingtalk.com/robot/send?access_token=098c877147afe9b6473bf512a2d8c133d2aac41732d98c60837a841f7381a7c9
+  # 钉钉机器人加签密钥
+  secret: SECa5494399c1abe08af6ce883cf2df0e71255aafd3ba1e149d5e5be0c408041eae
+
+# 企业微信通知
+wechat:
+  webhook:
+
+# 飞书通知, 加签密钥处理方法:https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot?lang=zh-CN#%E4%B8%BA%E8%87%AA%E5%AE%9A%E4%B9%89%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%B7%BB%E5%8A%A0%E5%AE%89%E5%85%A8%E8%AE%BE%E7%BD%AE
+lark:
+  webhook: https://open.feishu.cn/open-apis/bot/v2/hook/609f217d-b6ff-4412-8dac-4744f22a80a0
+  # 签名校验
+  secret: ZoXkM3G9l8NrimORCo9QAh
+
+
+# 数据库相关配置
+mysql_db:
+  # 数据库开关
+  switch: False
+  host:
+  user: root
+  password: '123456'
+  port: 3306
+
+# 镜像源
+mirror_source: http://mirrors.aliyun.com/pypi/simple/

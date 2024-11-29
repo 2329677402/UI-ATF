@@ -1,0 +1,51 @@
+# Driver files
+drivers/
+*.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.pyc
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Test reports
+report/
+allure-report/
+allure-results/
+
+# Virtual Environment
+venv/
+.env
+.venv
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db

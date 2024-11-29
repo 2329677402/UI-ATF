@@ -1,0 +1,20 @@
+# 测试框架
+pytest>=8.0.0
+pytest-xdist>=3.5.0
+allure-pytest>=2.13.2
+
+# Web自动化
+selenium>=4.18.1
+webdriver-manager>=4.0.1
+
+# App自动化
+Appium-Python-Client>=3.2.1
+
+# 工具库
+pyfiglet>=1.0.2
+colorlog>=6.8.2
+PyYAML>=6.0.1
+requests>=2.31.0
+
+# 报告
+allure-python-commons>=2.13.2

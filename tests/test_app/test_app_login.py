@@ -1,16 +1,12 @@
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
-"""
-@ Date        : 2024/11/26 下午5:38
-@ Author      : Administrator
-@ File        : test_app_login.py
-@ Description : 功能描述
-"""
-# test_app_login.py
-from tests.base_case_app import BaseCaseApp
+import pytest
+from tests.test_base_case import BaseCaseApp
 
 
 class TestAppLogin(BaseCaseApp):
-    def test_login(self):
-        self.login('user', 'pass')
-        # Assert something after login
+    @pytest.fixture(autouse=True)
+    def setup(self, app_driver):
+        self.driver = app_driver
+        self.setUp()
+
+    def test_app_login(self):
+        self.login('admin', 'yl123456')
