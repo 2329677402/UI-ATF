@@ -1,6 +1,3 @@
-# Driver files
-*.exe
-
 # Python
 __pycache__/
 *.py[cod]
