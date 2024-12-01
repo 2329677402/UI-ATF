@@ -35,6 +35,10 @@ var/
 logs/
 *.log
 
+# Test data
+datas/screenshots/
+datas/recordings/
+
 # Test reports
 report/
 allure-report/

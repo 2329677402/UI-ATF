@@ -5,7 +5,7 @@ env: 测试环境
 tester_name: Poco
 
 # 域名1
-host: http://192.168.124.73:8008/login
+host: http://113.194.201.66:8092/login
 # 域名2，支持多个域名配置
 app_host:
 

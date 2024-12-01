@@ -6,50 +6,78 @@ from webdriver_manager.chrome import ChromeDriverManager
 from appium import webdriver as appium_webdriver
 from appium.options.common.base import AppiumOptions
 
-# 定义driver存放路径
-DRIVER_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'drivers')
-if not os.path.exists(DRIVER_PATH):
-    os.makedirs(DRIVER_PATH)
 
-def get_web_driver_path():
-    """获取web端ChromeDriver路径"""
-    driver_path = ChromeDriverManager().install()
-    web_driver_path = os.path.join(DRIVER_PATH, 'chromedriver_web.exe')
-    if os.path.exists(driver_path) and not os.path.exists(web_driver_path):
-        import shutil
-        shutil.copy2(driver_path, web_driver_path)
-    return web_driver_path
+class DriverManager:
+    """驱动管理器类"""
 
-def get_app_driver_path():
-    """获取app端ChromeDriver路径"""
-    driver_path = ChromeDriverManager(driver_version="95.0.4638.74").install()
-    app_driver_path = os.path.join(DRIVER_PATH, 'chromedriver_app.exe')
-    if os.path.exists(driver_path) and not os.path.exists(app_driver_path):
-        import shutil
-        shutil.copy2(driver_path, app_driver_path)
-    return app_driver_path
+    def __init__(self):
+        # 获取项目根目录下的drivers目录
+        self.driver_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'drivers')
+        if not os.path.exists(self.driver_path):
+            os.makedirs(self.driver_path)
+
+    def get_driver_path(self, driver_type: str, version: str = None) -> str:
+        """
+        获取driver路径，如果本地不存在则下载
+        :param driver_type: 驱动类型 ('web' 或 'app')
+        :param version: ChromeDriver版本号（可选）
+        :return: driver路径
+        """
+        if driver_type not in ['web', 'app']:
+            raise ValueError("driver_type must be 'web' or 'app'")
+
+        # 确定目标driver路径
+        target_filename = f'chromedriver_{driver_type}.exe'
+        target_path = os.path.join(self.driver_path, target_filename)
+
+        # 如果目标driver已存在，直接返回路径
+        if os.path.exists(target_path):
+            print(f"Using existing {driver_type} driver: {target_path}")
+            return target_path
+
+        # 如果不存在，则下载新的driver
+        print(f"Downloading new {driver_type} driver...")
+        try:
+            # 根据类型选择ChromeDriver版本
+            chrome_driver = (ChromeDriverManager() if driver_type == 'web'
+                             else ChromeDriverManager(driver_version=version or "95.0.4638.74"))
+
+            # 下载ChromeDriver
+            source_path = chrome_driver.install()
+
+            # 复制到目标位置
+            import shutil
+            shutil.copy2(source_path, target_path)
+            print(f"Successfully downloaded and copied driver to: {target_path}")
+
+            return target_path
+
+        except Exception as e:
+            print(f"Failed to download {driver_type} driver: {str(e)}")
+            raise
+
+
+# 创建驱动管理器实例
+driver_manager = DriverManager()
+
 
 @pytest.fixture(scope='session')
 def web_driver():
-    """
-    Web端测试driver配置
-    使用webdriver_manager自动管理chrome driver版本
-    """
+    """Web端测试driver配置"""
+    driver = None
     try:
-        # 显式下载并复制 ChromeDriver
-        driver_path = get_web_driver_path()
+        driver_path = driver_manager.get_driver_path('web')
         print(f"Web ChromeDriver path: {driver_path}")
-        
+
         service = Service(executable_path=driver_path)
         options = webdriver.ChromeOptions()
         options.add_argument('--start-maximized')
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
-        # 添加调试选项
         options.add_argument('--verbose')
         options.add_argument('--log-level=3')
-        
+
         driver = webdriver.Chrome(service=service, options=options)
         print("WebDriver 初始化成功")
         yield driver
@@ -57,20 +85,18 @@ def web_driver():
         print(f"WebDriver 初始化失败: {str(e)}")
         raise
     finally:
-        if 'driver' in locals():
+        if driver is not None:
             driver.quit()
+
 
 @pytest.fixture(scope='session')
 def app_driver():
-    """
-    App端测试driver配置
-    使用Android System WebView 95.0.4638.74版本对应的chromedriver
-    """
+    """App端测试driver配置"""
+    driver = None
     try:
-        # 显式下载并复制 ChromeDriver
-        driver_path = get_app_driver_path()
+        driver_path = driver_manager.get_driver_path('app', "95.0.4638.74")
         print(f"App ChromeDriver path: {driver_path}")
-        
+
         options = AppiumOptions()
         options.load_capabilities({
             "appium:appPackage": "com.android.browser",
@@ -85,7 +111,7 @@ def app_driver():
             "appium:chromedriverExecutable": driver_path,
             "appium:noReset": True
         })
-        
+
         driver = appium_webdriver.Remote("http://127.0.0.1:4723", options=options)
         print("AppDriver 初始化成功")
         yield driver
@@ -93,5 +119,5 @@ def app_driver():
         print(f"AppDriver 初始化失败: {str(e)}")
         raise
     finally:
-        if 'driver' in locals():
+        if driver is not None:
             driver.quit()

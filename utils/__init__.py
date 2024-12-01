@@ -12,5 +12,3 @@ from utils.other_tool.models import Config
 
 _data = YamlReader(ensure_path_sep("/config/config.yaml")).read_yaml()
 config = Config(**_data)
-
-print(config.lark.secret)

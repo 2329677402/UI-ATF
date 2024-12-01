@@ -1,28 +1,47 @@
-from utils.base_util import BaseUtil
+import pytest
+
+from utils.api_tool.base_util import BaseUtil
+from utils.api_tool.locator import Locator
 
 
 class BaseCase:
+    """测试基类"""
     driver = None
     base_util = None
 
-    def setUp(self):
-        self.base_util = BaseUtil(self.driver)
+    def setup_base_util(self):
+        """初始化 base_util"""
+        if self.driver is None:
+            raise ValueError("Driver must be initialized before running tests")
+        return BaseUtil(self.driver)
 
-    def login(self):
-        # 实现登录逻辑
-        pass
+    @staticmethod
+    def create_locator(value: str, method: str = 'css_selector') -> Locator:
+        """创建元素定位器"""
+        return Locator(method=method, value=value)
 
 
 class BaseCaseWeb(BaseCase):
+    """Web测试基类"""
+
     def login(self):
-        # 实现Web端登录逻辑
-        self.base_util.open("http://192.168.124.73:8008/login")  # 替换为实际的登录URL
-        self.base_util.type("input[placeholder='账号']", "admin")
-        self.base_util.type("input[placeholder='密码']", "yl123456")
-        self.base_util.click("button[type='button']")
+        """Web端登录实现"""
+        self.base_util.open("http://113.194.201.66:8092/login")
+
+        # 使用create_locator创建Locator对象
+        username_locator = self.create_locator("input[placeholder='账号']")
+        password_locator = self.create_locator("input[placeholder='密码']")
+        login_button_locator = self.create_locator("button[type='button']")
+
+        # 使用Locator对象进行操作
+        self.base_util.type(username_locator, "admin")
+        self.base_util.type(password_locator, "yl123456")
+        self.base_util.click(login_button_locator)
 
 
 class BaseCaseApp(BaseCase):
+    """App测试基类"""
+
     def login(self):
-        # 实现App端登录逻辑
+        """App端登录实现"""
         pass
