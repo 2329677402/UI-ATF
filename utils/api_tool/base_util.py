@@ -3,9 +3,14 @@ import time
 from datetime import datetime
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
+from typing import Callable, TypeVar, cast
 from utils.api_tool.locator import Locator
-from config.setting import ensure_path_sep, root_path
+from config.setting import root_path
 from utils.log_tool.log_control import INFO, ERROR
+
+
+T = TypeVar('T')
 
 
 class BaseUtil:
@@ -144,10 +149,15 @@ class BaseUtil:
         :param timeout: 超时时间（秒）
         """
         try:
+            # 使用类型转换来解决类型提示问题
+            condition = cast(
+                Callable[[tuple], Callable],
+                EC.element_to_be_clickable
+            )
             element = self.wait_for_element(
                 locator,
                 timeout,
-                condition=EC.element_to_be_clickable
+                condition=condition
             )
             element.click()
         except Exception as e:
@@ -180,8 +190,13 @@ class BaseUtil:
         try:
             self.wait_for_element(locator, timeout)
             return True
-        except:
+        except TimeoutException:
             return False
+        except NoSuchElementException:
+            return False
+        except WebDriverException as e:
+            ERROR.logger.error(f"检查元素存在时发生错误: {str(e)}")
+            raise
 
     def open(self, url):
         """
@@ -217,7 +232,8 @@ class BaseUtil:
             self.take_screenshot("swipe_failed")
             raise
 
-    def sleep(self, seconds):
+    @staticmethod
+    def sleep(seconds):
         """
         等待指定时间
         :param seconds: 等待秒数

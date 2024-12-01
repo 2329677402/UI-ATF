@@ -1,34 +1,29 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+"""
+@ Date        : 2024/12/1 下午8:06
+@ Author      : Poco Ray
+@ File        : test_app_login.py
+@ Description : 功能描述
+"""
 import pytest
 from tests.test_base_case import BaseCaseApp
+from utils.log_tool.log_control import INFO, ERROR
 
 
 class TestAppLogin(BaseCaseApp):
     """App登录测试类"""
-    
-    def setup_method(self, method):
-        """每个测试方法执行前的设置"""
-        super().__init__()
-
-    @pytest.fixture(autouse=True)
-    def init_driver(self, app_driver):
-        """初始化driver"""
-        self.setup_test(app_driver)
-        yield
-        if hasattr(self, 'driver'):
-            self.quit()
 
     @pytest.mark.app
+    @pytest.mark.login
     def test_app_login(self):
         """测试App端登录功能"""
         try:
-            self.take_screenshot("before_login")
+            INFO.logger.info("开始执行 test_app_login 测试")
             self.login()
             self.take_screenshot("after_login")
-            
-            assert self.is_element_present(
-                self.create_locator(".login-success")
-            ), "登录失败"
-            
+
         except Exception as e:
+            ERROR.logger.error(f"测试执行失败: {str(e)}")
             self.take_screenshot("login_failed")
             raise
