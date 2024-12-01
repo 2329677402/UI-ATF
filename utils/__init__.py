@@ -10,5 +10,9 @@ from utils.read_tool.read_file import YamlReader
 from config.setting import ensure_path_sep
 from utils.other_tool.models import Config
 
-_data = YamlReader(ensure_path_sep("/config/config.yaml")).read_yaml()
+try:
+    _data = YamlReader(ensure_path_sep("/config/config.yaml")).read_yaml()
+except FileNotFoundError:
+    _data = {}  # 如果文件不存在，使用空字典作为默认值
+
 config = Config(**_data)

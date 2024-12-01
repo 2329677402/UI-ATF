@@ -1,255 +1,133 @@
-import os
-import time
-from datetime import datetime
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
-from typing import Callable, TypeVar, cast
+from selenium.common.exceptions import TimeoutException, WebDriverException
+import os
+from typing import Union, Tuple
+from datetime import datetime
+from config.setting import ensure_path_sep, root_path, Settings
 from utils.api_tool.locator import Locator
-from config.setting import root_path
-from utils.log_tool.log_control import INFO, ERROR
 
 
-T = TypeVar('T')
+class BaseUtil(WebDriver):
+    """基础操作封装"""
 
-
-class BaseUtil:
-    def __init__(self, driver):
+    def __init__(self, driver: WebDriver):
         """
-        初始化 BaseUtil
+        初始化工具类
         :param driver: WebDriver实例
         """
-        if driver is None:
-            raise ValueError("Driver cannot be None")
-        self.driver = driver
-        self._create_directories()
+        self._driver = driver
+        # 创建设置实例
+        settings = Settings()
+        config = settings.global_config
+        self.wait = WebDriverWait(
+            driver,
+            config['webdriver_timeout'],
+            poll_frequency=config['webdriver_poll_frequency']
+        )
+
+    def __getattr__(self, name):
+        """代理原生WebDriver的方法"""
+        return getattr(self._driver, name)
 
     @staticmethod
-    def _create_directories():
-        """创建必要的目录"""
-        try:
-            # 在根目录下创建 logs 目录
-            log_dir = os.path.join(root_path(), 'logs')
-            if not os.path.exists(log_dir):
-                os.makedirs(log_dir)
+    def clean_screenshots():
+        """清理历史截图"""
+        screenshots_path = os.path.join(root_path(), 'datas', 'screenshots')
+        if os.path.exists(screenshots_path):
+            import shutil
+            shutil.rmtree(screenshots_path)
+        os.makedirs(screenshots_path, exist_ok=True)
 
-            # 在根目录下的 datas 目录中创建必要的子目录
-            data_dir = os.path.join(root_path(), 'datas')
-            if not os.path.exists(data_dir):
-                os.makedirs(data_dir)
-            
-            for dir_name in ['screenshots', 'recordings']:
-                dir_path = os.path.join(data_dir, dir_name)
-                if not os.path.exists(dir_path):
-                    os.makedirs(dir_path)
-        except Exception as e:
-            ERROR.logger.error(f"创建目录失败: {str(e)}")
-            raise
-
-    def take_screenshot(self, name=None):
+    def take_screenshot(self, name: str):
         """
         截取当前页面截图
-        :param name: 截图名称，默认使用时间戳
-        :return: 截图文件路径
+        :param name: 截图名称
         """
         try:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"{name}_{timestamp}.png" if name else f"screenshot_{timestamp}.png"
-            # 使用 datas/screenshots 目录
-            filepath = os.path.join(root_path(), 'datas', 'screenshots', filename)
+            settings = Settings()
+            if not settings.global_config['save_screenshot']:
+                return
 
-            self.driver.save_screenshot(filepath)
-            INFO.logger.info(f"截图保存成功: {filepath}")
+            # 确保目录存在
+            screenshots_dir = os.path.join(root_path(), 'datas', 'screenshots')
+            os.makedirs(screenshots_dir, exist_ok=True)
+
+            # 生成文件名
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            filename = f"{name}_{timestamp}.png"
+            
+            # 使用绝对路径
+            filepath = os.path.join(screenshots_dir, filename)
+            
+            # 保存截图
+            self._driver.save_screenshot(filepath)
+            print(f"截图已保存: {filepath}")  # 添加日志
             return filepath
         except Exception as e:
-            ERROR.logger.error(f"截图失败: {str(e)}")
+            print(f"截图失败: {str(e)}")  # 添加错误日志
             return None
 
-    def start_screen_recording(self):
+    @staticmethod
+    def _convert_to_locator(selector: Union[str, Tuple, Locator]) -> Locator:
         """
-        开始录制屏幕（仅支持移动端）
+        转换为Locator对象
+        :param selector: 选择器
+        :return: Locator对象
         """
-        try:
-            if hasattr(self.driver, 'start_recording_screen'):
-                self.driver.start_recording_screen()
-                INFO.logger.info("开始录制屏幕")
-            else:
-                ERROR.logger.error("当前driver不支持录制屏幕")
-        except Exception as e:
-            ERROR.logger.error(f"开始录制屏幕失败: {str(e)}")
+        if isinstance(selector, Locator):
+            return selector
+        elif isinstance(selector, str):
+            return Locator('CSS_SELECTOR', selector)
+        elif isinstance(selector, tuple):
+            return Locator(selector[0], selector[1])
+        raise ValueError(f"无效的选择器类型: {type(selector)}")
 
-    def stop_screen_recording(self, name=None):
-        """
-        停止录制屏幕并保存（仅支持移动端）
-        :param name: 视频名称，默认使用时间戳
-        :return: 视频文件路径
-        """
-        try:
-            if hasattr(self.driver, 'stop_recording_screen'):
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                filename = f"{name}_{timestamp}.mp4" if name else f"recording_{timestamp}.mp4"
-                # 使用 datas/recordings 目录
-                filepath = os.path.join(root_path(), 'datas', 'recordings', filename)
-
-                video_data = self.driver.stop_recording_screen()
-                with open(filepath, "wb") as f:
-                    f.write(video_data)
-
-                INFO.logger.info(f"录屏保存成功: {filepath}")
-                return filepath
-            else:
-                ERROR.logger.error("当前driver不支持录制屏幕")
-                return None
-        except Exception as e:
-            ERROR.logger.error(f"停止录制屏幕失败: {str(e)}")
-            return None
-
-    def wait_for_element(self, locator: Locator, timeout=10, condition=EC.presence_of_element_located):
-        """
-        等待元素满足指定条件
-        :param locator: 元素定位器
-        :param timeout: 超时时间（秒）
-        :param condition: 等待条件，默认为元素存在
-        :return: 目标元素
-        """
-        try:
-            element = WebDriverWait(self.driver, timeout).until(
-                condition(locator.to_selenium())
-            )
-            return element
-        except Exception as e:
-            ERROR.logger.error(f"等待元素失败: {str(e)}")
-            self.take_screenshot("wait_failed")
-            raise
-
-    def type(self, locator: Locator, text='', timeout=10, retry=False):
-        """
-        输入文本
-        :param locator: 元素定位器
-        :param text: 要输入的文本
-        :param timeout: 超时时间（秒）
-        :param retry: 失败是否重试
-        """
-        try:
-            element = self.wait_for_element(locator, timeout)
-            element.clear()
-            element.send_keys(text)
-        except Exception as e:
-            if retry:
-                self.type(locator, text, timeout, retry=False)
-            else:
-                ERROR.logger.error(f"输入文本失败: {str(e)}")
-                self.take_screenshot("type_failed")
-                raise
-
-    def click(self, locator: Locator, timeout=10):
+    def click(self, selector: Union[str, Tuple, Locator]):
         """
         点击元素
-        :param locator: 元素定位器
-        :param timeout: 超时时间（秒）
+        :param selector: 元素选择器
         """
-        try:
-            # 使用类型转换来解决类型提示问题
-            condition = cast(
-                Callable[[tuple], Callable],
-                EC.element_to_be_clickable
-            )
-            element = self.wait_for_element(
-                locator,
-                timeout,
-                condition=condition
-            )
-            element.click()
-        except Exception as e:
-            ERROR.logger.error(f"点击元素失败: {str(e)}")
-            self.take_screenshot("click_failed")
-            raise
+        locator = self._convert_to_locator(selector)
+        element = self.wait.until(
+            EC.element_to_be_clickable(locator.to_selenium())
+        )
+        element.click()
 
-    def get_element_text(self, locator: Locator, timeout=10):
+    def type(self, selector: Union[str, Tuple, Locator], text: str):
         """
-        获取元素文本
-        :param locator: 元素定位器
-        :param timeout: 超时时间（秒）
-        :return: 元素文本内容
+        输入文本
+        :param selector: 元素选择器
+        :param text: 要输入的文本
         """
-        try:
-            element = self.wait_for_element(locator, timeout)
-            return element.text
-        except Exception as e:
-            ERROR.logger.error(f"获取元素文本失败: {str(e)}")
-            self.take_screenshot("get_text_failed")
-            raise
+        locator = self._convert_to_locator(selector)
+        element = self.wait.until(
+            EC.presence_of_element_located(locator.to_selenium())
+        )
+        element.clear()
+        element.send_keys(text)
 
-    def is_element_present(self, locator: Locator, timeout=3):
+    def is_element_present(self, selector: Union[str, Tuple, Locator]) -> bool:
         """
-        判断元素是否存在
-        :param locator: 元素定位器
-        :param timeout: 超时时间（秒）
+        检查元素是否存在
+        :param selector: 元素选择器
         :return: 元素是否存在
         """
         try:
-            self.wait_for_element(locator, timeout)
+            locator = self._convert_to_locator(selector)
+            self.wait.until(
+                EC.presence_of_element_located(locator.to_selenium())
+            )
             return True
         except TimeoutException:
             return False
-        except NoSuchElementException:
-            return False
         except WebDriverException as e:
-            ERROR.logger.error(f"检查元素存在时发生错误: {str(e)}")
-            raise
+            raise WebDriverException(f"检查元素存在时失败: {str(e)}")
 
-    def open(self, url):
+    def open(self, url: str):
         """
-        打开网页
-        :param url: 目标URL
+        打开URL
+        :param url: 要打开的URL
         """
-        try:
-            self.driver.get(url)
-            WebDriverWait(self.driver, 10).until(
-                lambda driver: driver.execute_script('return document.readyState') == 'complete'
-            )
-        except Exception as e:
-            ERROR.logger.error(f"打开页面失败: {str(e)}")
-            self.take_screenshot("open_failed")
-            raise
-
-    def swipe(self, start_x, start_y, end_x, end_y, duration=None):
-        """
-        滑动屏幕（仅支持移动端）
-        :param start_x: 起始x坐标
-        :param start_y: 起始y坐标
-        :param end_x: 结束x坐标
-        :param end_y: 结束y坐标
-        :param duration: 持续时间（毫秒）
-        """
-        try:
-            if hasattr(self.driver, 'swipe'):
-                self.driver.swipe(start_x, start_y, end_x, end_y, duration)
-            else:
-                ERROR.logger.error("当前driver不支持滑动操作")
-        except Exception as e:
-            ERROR.logger.error(f"滑动失败: {str(e)}")
-            self.take_screenshot("swipe_failed")
-            raise
-
-    @staticmethod
-    def sleep(seconds):
-        """
-        等待指定时间
-        :param seconds: 等待秒数
-        """
-        time.sleep(seconds)
-
-    def close(self):
-        """关闭当前窗口"""
-        try:
-            self.driver.close()
-        except Exception as e:
-            ERROR.logger.error(f"关闭窗口失败: {str(e)}")
-
-    def quit(self):
-        """退出浏览器"""
-        try:
-            self.driver.quit()
-        except Exception as e:
-            ERROR.logger.error(f"退出浏览器失败: {str(e)}")
+        self._driver.get(url) 

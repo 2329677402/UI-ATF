@@ -1,11 +1,16 @@
 import os
+import sys
 import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from appium import webdriver as appium_webdriver
 from appium.options.common.base import AppiumOptions
-from config.setting import ensure_path_sep, root_path
+from config.setting import root_path
+
+# 添加项目根目录到 Python 路径
+project_root = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, project_root)
 
 
 class DriverManager:

@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-@ Date        : 2024/11/29 下午5:10
-@ Author      : Administrator
-@ File        : send_lark.py
-@ Description : 功能描述
-"""
-#!/usr/bin/env python
-# -*- coding: UTF-8 -*-
-"""
 @ Date        : 2024/11/16 下午6:15
 @ Author      : Poco Ray
 @ File        : send_lark.py

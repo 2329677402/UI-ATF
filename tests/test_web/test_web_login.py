@@ -14,7 +14,8 @@ class TestWebLogin(BaseCaseWeb):
             INFO.logger.info("开始执行 test_web_login 测试")
             self.login()
             self.take_screenshot("after_login")
-            
+
+
         except Exception as e:
             ERROR.logger.error(f"测试执行失败: {str(e)}")
             self.take_screenshot("login_failed")
