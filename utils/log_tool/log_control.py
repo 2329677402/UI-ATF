@@ -11,7 +11,7 @@ from logging import handlers
 from typing import Text
 import colorlog
 import time
-from config.setting import ensure_path_sep
+from common.setting import ensure_path_sep
 import os
 
 def create_log_dir():

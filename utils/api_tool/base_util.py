@@ -3,13 +3,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
 import os
+import shutil
 from typing import Union, Tuple
 from datetime import datetime
-from config.setting import ensure_path_sep, root_path, Settings
+from common.setting import ensure_path_sep, root_path, Settings
 from utils.api_tool.locator import Locator
 
-
-class BaseUtil(WebDriver):
+class BaseUtil:
     """基础操作封装"""
 
     def __init__(self, driver: WebDriver):
@@ -18,25 +18,29 @@ class BaseUtil(WebDriver):
         :param driver: WebDriver实例
         """
         self._driver = driver
+        
         # 创建设置实例
-        settings = Settings()
-        config = settings.global_config
+        self.settings = Settings()
+        config = self.settings.global_config
         self.wait = WebDriverWait(
             driver,
             config['webdriver_timeout'],
             poll_frequency=config['webdriver_poll_frequency']
         )
+        
+        # 如果配置为True，则清理历史截图
+        if config.get('clean_screenshots', True):
+            self._clean_screenshots()
 
     def __getattr__(self, name):
         """代理原生WebDriver的方法"""
         return getattr(self._driver, name)
 
     @staticmethod
-    def clean_screenshots():
+    def _clean_screenshots():
         """清理历史截图"""
         screenshots_path = os.path.join(root_path(), 'datas', 'screenshots')
         if os.path.exists(screenshots_path):
-            import shutil
             shutil.rmtree(screenshots_path)
         os.makedirs(screenshots_path, exist_ok=True)
 
@@ -45,11 +49,10 @@ class BaseUtil(WebDriver):
         截取当前页面截图
         :param name: 截图名称
         """
-        try:
-            settings = Settings()
-            if not settings.global_config['save_screenshot']:
-                return
+        if not self.settings.global_config['save_screenshot']:
+            return
 
+        try:
             # 确保目录存在
             screenshots_dir = os.path.join(root_path(), 'datas', 'screenshots')
             os.makedirs(screenshots_dir, exist_ok=True)
@@ -63,10 +66,10 @@ class BaseUtil(WebDriver):
             
             # 保存截图
             self._driver.save_screenshot(filepath)
-            print(f"截图已保存: {filepath}")  # 添加日志
+            print(f"截图已保存: {filepath}")
             return filepath
         except Exception as e:
-            print(f"截图失败: {str(e)}")  # 添加错误日志
+            print(f"截图失败: {str(e)}")
             return None
 
     @staticmethod

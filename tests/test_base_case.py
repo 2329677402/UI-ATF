@@ -1,9 +1,6 @@
 import pytest
-
-from config.setting import root_path
 from utils.api_tool.base_case import BaseCase
 from pages.page_web.page_web_login import PageWebLogin
-import os
 
 
 class BaseCaseWeb(BaseCase):
@@ -12,18 +9,12 @@ class BaseCaseWeb(BaseCase):
     @pytest.fixture(autouse=True)
     def setup_web_test(self, web_driver):
         """设置Web测试环境"""
-        # 清理历史截图
-        screenshots_path = os.path.join(root_path(), 'datas', 'screenshots')
-        if os.path.exists(screenshots_path):
-            import shutil
-            shutil.rmtree(screenshots_path)
-        os.makedirs(screenshots_path, exist_ok=True)
-        
         self.driver = web_driver
         self.setup_actions()
         yield
 
     def login(self):
+        """执行登录操作"""
         PageWebLogin.login(self, "http://113.194.201.66:8092/login", "admin", "yl123456")
 
 

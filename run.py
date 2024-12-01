@@ -33,7 +33,7 @@ def run():
         ]
 
         try:
-            pytest_args.extend(['-n', '4'])
+            pytest_args.extend(['-n', 'auto'])
         except ImportError:
             INFO.logger.warning("pytest-xdist未安装. 按顺序运行测试.")
 

@@ -6,7 +6,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from appium import webdriver as appium_webdriver
 from appium.options.common.base import AppiumOptions
-from config.setting import root_path
+from common.setting import root_path
 
 # 添加项目根目录到 Python 路径
 project_root = os.path.dirname(os.path.abspath(__file__))

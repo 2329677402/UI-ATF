@@ -7,7 +7,7 @@
 @ Description : 功能描述
 """
 import os
-from config.setting import ensure_path_sep
+from common.setting import ensure_path_sep
 
 
 def get_all_files(file_path, yaml_data_switch=False) -> list:
