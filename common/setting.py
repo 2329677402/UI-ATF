@@ -52,16 +52,17 @@ class Settings:
         """全局配置参数"""
         return {
             # WebDriver相关配置
-            'webdriver_timeout': 10,  # 显式等待超时时间（秒）
+            'webdriver_timeout': 10,  # WebDriver超时时间（秒）
             'webdriver_poll_frequency': 0.5,  # 轮询频率（秒）
             'implicit_timeout': 10,  # 隐式等待时间（秒）
             'page_load_timeout': 30,  # 页面加载超时时间（秒）
 
             # 截图相关配置
-            'save_screenshot': True,  # 是否保存截图
+            'clean_screenshots': True,  # 是否清理历史截图
             'screenshot_format': 'png',  # 截图格式
 
             # 日志相关配置
+            'clean_logs': True,  # 是否清理历史日志
             'log_level': 'INFO',  # 日志级别
             'log_format': '%(asctime)s [%(levelname)s] %(message)s',  # 日志格式
             'log_date_format': '%Y-%m-%d %H:%M:%S',  # 日志日期格式

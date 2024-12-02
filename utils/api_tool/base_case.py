@@ -1,6 +1,8 @@
-from typing import Any
+from typing import Any, Union, List
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
 from utils.api_tool.base_util import BaseUtil
+from utils.api_tool.locator import Locator
 
 
 class BaseCase:
@@ -20,34 +22,91 @@ class BaseCase:
             raise ValueError("工具类未初始化")
         return getattr(self._util, name)
 
-    def __dir__(self) -> list[str]:
-        """自定义类的属性列表，用于IDE提示"""
-        attrs = set(super().__dir__())
-        if self._util is not None:
-            attrs.update(dir(self._util))
-        return sorted(attrs)
+    # ====== 封装的自定义方法 ======
+    def open(self, url: str) -> None:
+        """打开网页"""
+        self._util.get(url)
 
-    # 显式声明一些常用方法的类型提示
-    def click(self, *args, **kwargs): 
+    def click(self, selector: Union[str, tuple, Locator]) -> None:
         """点击元素"""
-        return self._util.click(*args, **kwargs) if self._util else None
+        self._util.click(selector)
 
-    def type(self, *args, **kwargs): 
+    def type(self, selector: Union[str, tuple, Locator], text: str) -> None:
         """输入文本"""
-        return self._util.type(*args, **kwargs) if self._util else None
+        self._util.type(selector, text)
 
-    def open(self, *args, **kwargs): 
-        """打开URL"""
-        return self._util.open(*args, **kwargs) if self._util else None
-
-    def get(self, *args, **kwargs):
-        """打开URL"""
-        return self._util.get(*args, **kwargs) if self._util else None
-
-    def take_screenshot(self, *args, **kwargs): 
-        """截取屏幕截图"""
-        return self._util.take_screenshot(*args, **kwargs) if self._util else None
-
-    def is_element_present(self, *args, **kwargs): 
+    def is_element_present(self, selector: Union[str, tuple, Locator]) -> bool:
         """检查元素是否存在"""
-        return self._util.is_element_present(*args, **kwargs) if self._util else None
+        return self._util.is_element_present(selector)
+
+    def take_screenshot(self, name: str) -> str:
+        """截取屏幕截图"""
+        return self._util.take_screenshot(name)
+
+    # ====== Selenium原生方法 ======
+    def get(self, url: str) -> None:
+        """访问URL"""
+        self.driver.get(url)
+
+    def find_element(self, by: str, value: str) -> WebElement:
+        """查找单个元素"""
+        return self.driver.find_element(by, value)
+
+    def find_elements(self, by: str, value: str) -> List[WebElement]:
+        """查找多个元素"""
+        return self.driver.find_elements(by, value)
+
+    def refresh(self) -> None:
+        """刷新页面"""
+        self.driver.refresh()
+
+    def back(self) -> None:
+        """返回上一页"""
+        self.driver.back()
+
+    def forward(self) -> None:
+        """前进到下一页"""
+        self.driver.forward()
+
+    def close(self) -> None:
+        """关闭当前窗口"""
+        self.driver.close()
+
+    def quit(self) -> None:
+        """退出浏览器"""
+        self.driver.quit()
+
+    def maximize_window(self) -> None:
+        """最大化窗口"""
+        self.driver.maximize_window()
+
+    def minimize_window(self) -> None:
+        """最小化窗口"""
+        self.driver.minimize_window()
+
+    def switch_to_frame(self, frame_reference) -> None:
+        """切换到iframe"""
+        self.driver.switch_to.frame(frame_reference)
+
+    def switch_to_default_content(self) -> None:
+        """切换到默认内容"""
+        self.driver.switch_to.default_content()
+
+    def execute_script(self, script: str, *args) -> Any:
+        """执行JavaScript代码"""
+        return self.driver.execute_script(script, *args)
+
+    @property
+    def current_url(self) -> str:
+        """获取当前URL"""
+        return self.driver.current_url
+
+    @property
+    def title(self) -> str:
+        """获取页面标题"""
+        return self.driver.title
+
+    @property
+    def page_source(self) -> str:
+        """获取页面源码"""
+        return self.driver.page_source

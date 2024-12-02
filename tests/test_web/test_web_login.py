@@ -14,6 +14,10 @@ class TestWebLogin(BaseCaseWeb):
             INFO.logger.info("开始执行 test_web_login 测试")
             self.login()
             self.take_screenshot("after_login")
+            current = self.current_url
+            handle = self.current_window_handle
+            print(f"当前URL: {current}")
+            print(f"当前窗口句柄: {handle}")
 
 
         except Exception as e:

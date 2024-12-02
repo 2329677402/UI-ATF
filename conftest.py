@@ -1,5 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+"""
+@ Date        : 2024/12/2 下午11:41
+@ Author      : Poco Ray
+@ File        : conftest.py
+@ Description : Pytest配置文件
+"""
+
 import os
-import sys
 import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -7,10 +15,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 from appium import webdriver as appium_webdriver
 from appium.options.common.base import AppiumOptions
 from common.setting import root_path
-
-# 添加项目根目录到 Python 路径
-project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, project_root)
 
 
 class DriverManager:
@@ -37,11 +41,10 @@ class DriverManager:
 
         # 如果目标driver已存在，直接返回路径
         if os.path.exists(target_path):
-            print(f"使用现有的 {driver_type} driver: {target_path}")
             return target_path
 
         # 如果不存在，则下载新的driver
-        print(f"正在下载 {driver_type} driver, 请稍候...")
+        print(f"开始下载 {driver_type} driver, 请稍候...")
         try:
             # 根据类型选择ChromeDriver版本
             chrome_driver = (ChromeDriverManager() if driver_type == 'web'
@@ -49,11 +52,12 @@ class DriverManager:
 
             # 下载ChromeDriver
             source_path = chrome_driver.install()
+            print(f"驱动下载完成: {source_path}")
 
             # 复制到目标位置
             import shutil
             shutil.copy2(source_path, target_path)
-            print(f"已成功下载驱动程序并将其复制到: {target_path}")
+            print(f"已将Driver驱动复制到目标路径: {target_path}")
 
             return target_path
 
@@ -72,7 +76,7 @@ def web_driver():
     driver = None
     try:
         driver_path = driver_manager.get_driver_path('web')
-        print(f"Web ChromeDriver 路径: {driver_path}")
+        print(f"\n当前使用的WebDriver驱动路径: {driver_path}")
 
         service = Service(executable_path=driver_path)
         options = webdriver.ChromeOptions()
@@ -84,7 +88,8 @@ def web_driver():
         options.add_argument('--log-level=3')
 
         driver = webdriver.Chrome(service=service, options=options)
-        print("WebDriver 初始化成功")
+        print("开始初始化WebDriver对象, 请稍候...")
+        print("初始化完成, 开始执行测试用例...")
         yield driver
     except Exception as e:
         print(f"WebDriver 初始化失败: {str(e)}")
@@ -92,6 +97,7 @@ def web_driver():
     finally:
         if driver is not None:
             driver.quit()
+            print("\nWeb相关测试已执行完毕, 具体详情请查看Allure报告!")
 
 
 @pytest.fixture(scope='session')
@@ -100,7 +106,7 @@ def app_driver():
     driver = None
     try:
         driver_path = driver_manager.get_driver_path('app', "95.0.4638.10")
-        print(f"App ChromeDriver 路径: {driver_path}")
+        print(f"\n当前使用的AppDriver驱动路径: {driver_path}")
 
         options = AppiumOptions()
         options.load_capabilities({
@@ -118,7 +124,8 @@ def app_driver():
         })
 
         driver = appium_webdriver.Remote("http://127.0.0.1:4723", options=options)
-        print("AppDriver 初始化成功")
+        print("开始初始化AppDriver对象, 请稍候...")
+        print("初始化完成, 开始执行测试用例...")
         yield driver
     except Exception as e:
         print(f"AppDriver 初始化失败: {str(e)}")
@@ -126,3 +133,4 @@ def app_driver():
     finally:
         if driver is not None:
             driver.quit()
+            print("\nApp相关测试已执行完毕, 具体详情请查看Allure报告!")
