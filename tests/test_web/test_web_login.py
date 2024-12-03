@@ -19,9 +19,9 @@ class TestWebLogin(BaseCaseWeb):
             print(f"当前URL: {current}")
             print(f"当前窗口句柄: {handle}")
             self.click("li:contains('特殊作业全过程')")
-            self.sleep(2)
-
-
+            self.close_app("com.android.browser")
+            self.start_app("com.tongjiwisdom")
+            self.sleep(1)
 
         except Exception as e:
             ERROR.logger.error(f"测试执行失败: {str(e)}")

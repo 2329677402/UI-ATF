@@ -6,8 +6,8 @@
 @ File        : conftest.py
 @ Description : Pytest配置文件
 """
-
 import os
+import time
 import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -90,7 +90,9 @@ def web_driver():
         driver = webdriver.Chrome(service=service, options=options)
         print("开始初始化WebDriver对象, 请稍候...")
         print("初始化完成, 开始执行测试用例...")
+        time.sleep(0.5)
         yield driver
+        driver.set_network_conditions()
     except Exception as e:
         print(f"WebDriver 初始化失败: {str(e)}")
         raise
@@ -126,7 +128,9 @@ def app_driver():
         driver = appium_webdriver.Remote("http://127.0.0.1:4723", options=options)
         print("开始初始化AppDriver对象, 请稍候...")
         print("初始化完成, 开始执行测试用例...")
+        time.sleep(0.5)
         yield driver
+        driver.switch_to.context()
     except Exception as e:
         print(f"AppDriver 初始化失败: {str(e)}")
         raise

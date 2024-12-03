@@ -12,6 +12,7 @@ import shutil
 from datetime import datetime
 from common.setting import root_path, Settings
 from utils.log_tool.log_control import INFO, ERROR
+from appium.webdriver.webdriver import WebDriver as AppDriver
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -23,7 +24,7 @@ from utils.api_tool.selector_util import SelectorUtil
 class BaseUtil:
     """基础操作封装"""
 
-    def __init__(self, driver: WebDriver):
+    def __init__(self, driver: AppDriver or WebDriver):
         """
         初始化工具类
         :param driver: WebDriver实例
@@ -47,10 +48,6 @@ class BaseUtil:
             self._clean_screenshots()
         if config.get('clean_logs', True):
             self._clean_logs()
-
-    def __getattr__(self, name):
-        """代理原生WebDriver的方法"""
-        return getattr(self._driver, name)
 
     def find_element(self, selector: str, by: str = 'css_selector', timeout=None) -> WebElement:
         """
@@ -213,7 +210,7 @@ class BaseUtil:
 
             # 保存截图
             self._driver.save_screenshot(filepath)
-            print(f"截图已保存: {filepath}")
+            print(f"截图保存至: {filepath}")
             return filepath
         except Exception as e:
             print(f"截图失败: {str(e)}")
@@ -289,3 +286,145 @@ class BaseUtil:
     def sleep(seconds: int) -> None:
         """暂停执行"""
         time.sleep(seconds)
+
+    def start_app(self, app_package: str) -> None:
+        """启动App"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                self._driver.activate_app(app_package)
+                INFO.logger.info(f"成功启动应用: {app_package}")
+            else:
+                raise NotImplementedError("Web端不支持start_app方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"启动应用失败: {app_package}, 错误信息: {e}")
+            raise
+
+    def close_app(self, app_package: str) -> None:
+        """关闭App"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                self._driver.terminate_app(app_package)
+                INFO.logger.info(f"成功关闭应用: {app_package}")
+            else:
+                raise NotImplementedError("Web端不支持close_app方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"关闭应用失败: {app_package}, 错误信息: {e}")
+            raise
+
+    def current_package(self) -> str:
+        """获取当前应用包名"""
+        if isinstance(self._driver, AppDriver):
+            return self._driver.current_package
+        raise NotImplementedError("Web端不支持current_package方法")
+
+    def current_activity(self) -> str:
+        """获取当前活动"""
+        if isinstance(self._driver, AppDriver):
+            return self._driver.current_activity
+        raise NotImplementedError("Web端不支持current_activity方法")
+
+    def install_app(self, app_path: str) -> None:
+        """安装App"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                self._driver.install_app(app_path)
+                INFO.logger.info(f"成功安装应用: {app_path}")
+            else:
+                raise NotImplementedError("Web端不支持install_app方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"安装应用失败: {app_path}, 错误信息: {e}")
+            raise
+
+    def uninstall_app(self, app_package: str) -> None:
+        """卸载App"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                self._driver.remove_app(app_package)
+                INFO.logger.info(f"成功卸载应用: {app_package}")
+            else:
+                raise NotImplementedError("Web端不支持uninstall_app方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"卸载应用失败: {app_package}, 错误信息: {e}")
+            raise
+
+    def is_app_installed(self, app_package: str) -> bool:
+        """检查App是否已安装"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                return self._driver.is_app_installed(app_package)
+            raise NotImplementedError("Web端不支持is_app_installed方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"检查应用是否安装失败: {app_package}, 错误信息: {e}")
+            raise
+
+    def background_app(self, seconds: int) -> None:
+        """将App置于后台"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                self._driver.background_app(seconds)
+                INFO.logger.info(f"成功将应用置于后台: {seconds}秒")
+            else:
+                raise NotImplementedError("Web端不支持background_app方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"将应用置于后台失败, 错误信息: {e}")
+            raise
+
+    def get_network_connect(self) -> int:
+        """获取手机网络连接类型"""
+        if isinstance(self._driver, AppDriver):
+            return self._driver.network_connection
+        raise NotImplementedError("Web端不支持get_network_connect方法")
+
+    def set_network_connect(self, connection_type: int) -> None:
+        """设置网络连接类型"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                self._driver.set_network_connection(connection_type)
+                INFO.logger.info(f"成功设置网络连接类型: {connection_type}")
+            else:
+                raise NotImplementedError("Web端不支持set_network_connect方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"设置网络连接类型失败, 错误信息: {e}")
+            raise
+
+    def press_keycode(self, keycode: int) -> None:
+        """发送按键码"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                self._driver.press_keycode(keycode)
+                INFO.logger.info(f"成功发送按键码: {keycode}")
+            else:
+                raise NotImplementedError("Web端不支持press_keycode方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"发送按键码失败, 错误信息: {e}")
+            raise
+
+    def open_notify(self) -> None:
+        """打开通知栏"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                self._driver.open_notifications()
+                INFO.logger.info("成功打开通知栏")
+            else:
+                raise NotImplementedError("Web端不支持open_notify方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"打开通知栏失败, 错误信息: {e}")
+            raise
+
+    def contexts(self) -> list:
+        """获取上下文"""
+        if isinstance(self._driver, AppDriver):
+            return self._driver.contexts
+        raise NotImplementedError("Web端不支持contexts方法")
+
+    def switch_to(self, context: str) -> None:
+        """切换上下文"""
+        try:
+            if isinstance(self._driver, AppDriver):
+                self._driver.switch_to.context(context)
+                INFO.logger.info(f"成功切换到上下文: {context}")
+            else:
+                raise NotImplementedError("Web端不支持switch_to方法")
+        except WebDriverException as e:
+            ERROR.logger.error(f"切换上下文失败, 错误信息: {e}")
+            raise

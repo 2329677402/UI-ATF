@@ -22,6 +22,8 @@ class TestAppLogin(BaseCaseApp):
             INFO.logger.info("开始执行 test_app_login 测试")
             self.login()
             self.take_screenshot("after_login")
+            self.close_app("com.android.browser")
+            self.start_app("com.tongjiwisdom")
 
         except Exception as e:
             ERROR.logger.error(f"测试执行失败: {str(e)}")
