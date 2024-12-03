@@ -15,7 +15,7 @@ from utils.log_tool.log_control import INFO, ERROR
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import TimeoutException, WebDriverException, ElementClickInterceptedException
 from selenium.webdriver.remote.webelement import WebElement
 from utils.api_tool.selector_util import SelectorUtil
 
@@ -31,10 +31,15 @@ class BaseUtil:
         self._driver = driver
         self.settings = Settings()
         config = self.settings.global_config
+
+        # 保存常用配置参数
+        self._timeout = config['webdriver_timeout']
+        self._poll_frequency = config['webdriver_poll_frequency']
+
         self.wait = WebDriverWait(
             driver,
-            config['webdriver_timeout'],
-            poll_frequency=config['webdriver_poll_frequency']
+            self._timeout,
+            poll_frequency=self._poll_frequency
         )
 
         # 清理历史数据
@@ -47,7 +52,7 @@ class BaseUtil:
         """代理原生WebDriver的方法"""
         return getattr(self._driver, name)
 
-    def find_element(self, selector: str, by: str = 'css_selector', timeout: int = None) -> WebElement:
+    def find_element(self, selector: str, by: str = 'css_selector', timeout=None) -> WebElement:
         """
         查找元素
         :param selector: 选择器
@@ -55,9 +60,19 @@ class BaseUtil:
         :param timeout: 超时时间
         :return: WebElement对象
         """
-        locator = SelectorUtil.get_selenium_locator(selector, by)
+        if timeout is not None:
+            # 使用传入的超时时间创建新的 WebDriverWait 实例
+            temp_wait = WebDriverWait(
+                self._driver,
+                timeout,
+                poll_frequency=self._poll_frequency
+            )
+        else:
+            temp_wait = self.wait
+
         try:
-            return self.wait.until(
+            locator = SelectorUtil.get_selenium_locator(selector, by)
+            return temp_wait.until(
                 EC.presence_of_element_located(locator)
             )
         except TimeoutException:
@@ -69,30 +84,73 @@ class BaseUtil:
             self.take_screenshot("find_element_error")
             raise
 
-    def click(self, selector: str, by: str = 'css_selector', delay: int = 0):
+    def click(self, selector: str, by: str = 'css_selector', delay: int = 0) -> None:
         """
         点击元素
         :param selector: 选择器
         :param by: 定位方式
         :param delay: 点击前的延迟时间(秒)
         """
+        max_attempts = 3  # 最大重试次数
+        attempt = 0
+        last_exception = None
+
+        while attempt < max_attempts:
+            try:
+                # 等待任何可能的Ajax请求完成
+                script = (
+                    "return (typeof jQuery !== 'undefined') ? "
+                    "jQuery.active == 0 : true"
+                )
+                self._driver.execute_script(script)
+
+                locator = SelectorUtil.get_selenium_locator(selector, by)
+
+                # 等待元素存在、可见并可点击
+                self.wait.until(EC.presence_of_element_located(locator))
+                self.wait.until(EC.visibility_of_element_located(locator))
+                element = self.wait.until(EC.element_to_be_clickable(locator))
+
+                # 使用JavaScript滚动到元素位置，不使用smooth效果
+                self._driver.execute_script(
+                    "arguments[0].scrollIntoView(true);",
+                    element
+                )
+
+                if delay > 0:
+                    time.sleep(delay)  # 仅在明确要求时等待
+
+                # 尝试点击
+                try:
+                    element.click()
+                except ElementClickInterceptedException:
+                    # 如果普通点击失败，尝试JavaScript点击
+                    self._driver.execute_script("arguments[0].click();", element)
+
+                INFO.logger.info(f"成功点击元素: {selector} (by={by})")
+                return
+
+            except TimeoutException as e:
+                last_exception = e
+                attempt += 1
+                continue
+            except Exception as e:
+                last_exception = e
+                attempt += 1
+                continue
+
+        # 如果所有重试都失败了
+        ERROR.logger.error(f"点击元素失败(重试{max_attempts}次后): {selector} (by={by})")
+        self.take_screenshot("click_error")
+
+        # 记录页面源码以便调试
         try:
-            locator = SelectorUtil.get_selenium_locator(selector, by)
-            element = self.wait.until(
-                EC.element_to_be_clickable(locator)
-            )
-            if delay > 0:
-                time.sleep(delay)
-            element.click()
-            INFO.logger.info(f"成功点击元素: {selector} (by={by})")
-        except TimeoutException:
-            ERROR.logger.error(f"点击元素超时: {selector} (by={by})")
-            self.take_screenshot("click_timeout")
-            raise
+            page_source = self._driver.page_source
+            ERROR.logger.error(f"页面源码: {page_source}")
         except Exception as e:
-            ERROR.logger.error(f"点击元素失败: {selector} (by={by}), 错误: {str(e)}")
-            self.take_screenshot("click_error")
-            raise
+            ERROR.logger.error(f"获取页面源码失败: {str(e)}")
+
+        raise last_exception
 
     def type(self, selector: str, text: str, by: str = 'css_selector', timeout: int = None, retry: bool = False):
         """

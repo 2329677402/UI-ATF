@@ -18,7 +18,9 @@ class TestWebLogin(BaseCaseWeb):
             handle = self.current_window_handle
             print(f"当前URL: {current}")
             print(f"当前窗口句柄: {handle}")
-            # self.click("span:contains('特殊作业全过程')")
+            self.click("li:contains('特殊作业全过程')")
+            self.sleep(2)
+
 
 
         except Exception as e:

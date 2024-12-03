@@ -6,6 +6,7 @@
 @ File        : base_util.py
 @ Description : 选择器工具类，用于处理和转换各种类型的选择器
 """
+from typing import Tuple
 from selenium.webdriver.common.by import By
 import re
 
@@ -48,11 +49,11 @@ class SelectorUtil:
         return selector.strip().startswith(('/', './/', '('))
 
     @staticmethod
-    def process_contains_selector(selector: str) -> tuple:
+    def process_contains_selector(selector: str) -> Tuple[str, str]:
         """
         处理包含:contains()的选择器
         :param selector: CSS选择器
-        :return: (转换后的选择器, 定位方式)
+        :return: (选择器, 定位方式)的元组
         """
         # 匹配:contains('文本')或:contains("文本")模式
         contains_pattern = r':contains\([\'\"](.*?)[\'\"]\)'
@@ -60,19 +61,33 @@ class SelectorUtil:
             text = re.search(contains_pattern, selector).group(1)
             base_selector = re.sub(contains_pattern, '', selector).strip()
 
-            # 转换为XPath表达式
+            # 转换为XPath表达式，使用更灵活的文本匹配方式
             if base_selector:
-                # 如果有基础选择器，将其包含在XPath中
-                xpath = f"//{base_selector}[contains(text(), '{text}')]"
+                # 如果有基础选择器，使用normalize-space()处理文本
+                xpath = (
+                    f"//{base_selector}["
+                    f"contains(normalize-space(.), '{text}') or "
+                    f"contains(normalize-space(text()), '{text}') or "
+                    f".//text()[contains(normalize-space(.), '{text}')] or "
+                    f"@*[contains(normalize-space(.), '{text}')]"
+                    f"]"
+                )
             else:
                 # 如果没有基础选择器，搜索所有元素
-                xpath = f"//*[contains(text(), '{text}')]"
+                xpath = (
+                    f"//*["
+                    f"contains(normalize-space(.), '{text}') or "
+                    f"contains(normalize-space(text()), '{text}') or "
+                    f".//text()[contains(normalize-space(.), '{text}')] or "
+                    f"@*[contains(normalize-space(.), '{text}')]"
+                    f"]"
+                )
             return xpath, 'xpath'
 
         return selector, 'css_selector'
 
     @classmethod
-    def get_selenium_locator(cls, selector: str, by: str = 'css_selector') -> tuple:
+    def get_selenium_locator(cls, selector: str, by: str = 'css_selector') -> Tuple[str, str]:
         """
         获取Selenium支持的定位器
         :param selector: 选择器字符串
