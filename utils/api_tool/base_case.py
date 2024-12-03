@@ -1,8 +1,7 @@
-from typing import Any, Union, List
+from typing import Any, List
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
 from utils.api_tool.base_util import BaseUtil
-from utils.api_tool.locator import Locator
 
 
 class BaseCase:
@@ -23,36 +22,44 @@ class BaseCase:
         return getattr(self._util, name)
 
     # ====== 封装的自定义方法 ======
-    def open(self, url: str) -> None:
+    def open(self, url) -> None:
         """打开网页"""
-        self._util.get(url)
+        self._util.open(url)
 
-    def click(self, selector: Union[str, tuple, Locator]) -> None:
+    def click(self, selector, by='css_selector', delay=0) -> None:
         """点击元素"""
-        self._util.click(selector)
+        self._util.click(selector, by, delay)
 
-    def type(self, selector: Union[str, tuple, Locator], text: str) -> None:
+    def type(self, selector, text, by='css_selector', timeout=None, retry: bool = False):
         """输入文本"""
-        self._util.type(selector, text)
+        self._util.type(selector, text, by, timeout, retry)
 
-    def is_element_present(self, selector: Union[str, tuple, Locator]) -> bool:
+    def is_element_present(self, selector, by='css_selector') -> bool:
         """检查元素是否存在"""
-        return self._util.is_element_present(selector)
+        return self._util.is_element_present(selector, by)
 
-    def take_screenshot(self, name: str) -> str:
+    def take_screenshot(self, name) -> str:
         """截取屏幕截图"""
         return self._util.take_screenshot(name)
 
+    def sleep(self, seconds=2) -> None:
+        """暂停执行"""
+        self._util.sleep(seconds)
+
+    def send_keys(self, selector, text, by='css_selector') -> None:
+        """输入文本"""
+        self._util.find_element(selector, by).send_keys(text)
+
     # ====== Selenium原生方法 ======
-    def get(self, url: str) -> None:
+    def get(self, url) -> None:
         """访问URL"""
         self.driver.get(url)
 
-    def find_element(self, by: str, value: str) -> WebElement:
+    def find_element(self, by, value) -> WebElement:
         """查找单个元素"""
         return self.driver.find_element(by, value)
 
-    def find_elements(self, by: str, value: str) -> List[WebElement]:
+    def find_elements(self, by, value) -> List[WebElement]:
         """查找多个元素"""
         return self.driver.find_elements(by, value)
 
@@ -110,3 +117,8 @@ class BaseCase:
     def page_source(self) -> str:
         """获取页面源码"""
         return self.driver.page_source
+
+    @property
+    def current_window_handle(self) -> str:
+        """获取当前窗口句柄"""
+        return self.driver.current_window_handle

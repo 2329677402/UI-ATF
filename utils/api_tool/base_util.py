@@ -9,15 +9,15 @@
 import os
 import time
 import shutil
-from typing import Union, Tuple
-from datetime import datetime, timedelta
-from common.setting import ensure_path_sep, root_path, Settings
-from utils.api_tool.locator import Locator
+from datetime import datetime
+from common.setting import root_path, Settings
 from utils.log_tool.log_control import INFO, ERROR
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.webdriver.remote.webelement import WebElement
+from utils.api_tool.selector_util import SelectorUtil
 
 
 class BaseUtil:
@@ -29,8 +29,6 @@ class BaseUtil:
         :param driver: WebDriver实例
         """
         self._driver = driver
-
-        # 创建设置实例
         self.settings = Settings()
         config = self.settings.global_config
         self.wait = WebDriverWait(
@@ -39,7 +37,7 @@ class BaseUtil:
             poll_frequency=config['webdriver_poll_frequency']
         )
 
-        # 如果配置为True，则清理历史数据
+        # 清理历史数据
         if config.get('clean_screenshots', True):
             self._clean_screenshots()
         if config.get('clean_logs', True):
@@ -49,50 +47,94 @@ class BaseUtil:
         """代理原生WebDriver的方法"""
         return getattr(self._driver, name)
 
-    @staticmethod
-    def _clean_screenshots():
-        """清理历史截图"""
-        screenshots_path = os.path.join(root_path(), 'datas', 'screenshots')
-        if os.path.exists(screenshots_path):
-            shutil.rmtree(screenshots_path)
-        os.makedirs(screenshots_path, exist_ok=True)
-        INFO.logger.info("历史截图清理完成")
-
-    @staticmethod
-    def _clean_logs():
-        """清理历史日志"""
+    def find_element(self, selector: str, by: str = 'css_selector', timeout: int = None) -> WebElement:
+        """
+        查找元素
+        :param selector: 选择器
+        :param by: 定位方式
+        :param timeout: 超时时间
+        :return: WebElement对象
+        """
+        locator = SelectorUtil.get_selenium_locator(selector, by)
         try:
-            logs_path = os.path.join(root_path(), 'logs')
-            if not os.path.exists(logs_path):
-                os.makedirs(logs_path)
-                return
-
-            # 获取当前日期
-            today = datetime.now().date()
-            
-            # 遍历日志目录
-            for filename in os.listdir(logs_path):
-                if not filename.endswith('.log'):
-                    continue
-                    
-                file_path = os.path.join(logs_path, filename)
-                try:
-                    # 从文件名中提取日期（格式：xxx-2024-01-01.log）
-                    date_str = filename.split('-', 1)[1].split('.')[0]
-                    file_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                    
-                    # 如果不是今天的日志，则删除
-                    if file_date < today:
-                        os.remove(file_path)
-                        INFO.logger.info(f"已删除历史日志文件: {filename}")
-                except (ValueError, IndexError):
-                    continue
-                except Exception as e:
-                    ERROR.logger.error(f"清理日志文件时发生错误: {str(e)}")
-            
-            INFO.logger.info("历史日志清理完成")
+            return self.wait.until(
+                EC.presence_of_element_located(locator)
+            )
+        except TimeoutException:
+            ERROR.logger.error(f"查找元素超时: {selector} (by={by})")
+            self.take_screenshot("find_element_timeout")
+            raise
         except Exception as e:
-            ERROR.logger.error(f"清理日志目录时发生错误: {str(e)}")
+            ERROR.logger.error(f"查找元素失败: {selector} (by={by}), 错误: {str(e)}")
+            self.take_screenshot("find_element_error")
+            raise
+
+    def click(self, selector: str, by: str = 'css_selector', delay: int = 0):
+        """
+        点击元素
+        :param selector: 选择器
+        :param by: 定位方式
+        :param delay: 点击前的延迟时间(秒)
+        """
+        try:
+            locator = SelectorUtil.get_selenium_locator(selector, by)
+            element = self.wait.until(
+                EC.element_to_be_clickable(locator)
+            )
+            if delay > 0:
+                time.sleep(delay)
+            element.click()
+            INFO.logger.info(f"成功点击元素: {selector} (by={by})")
+        except TimeoutException:
+            ERROR.logger.error(f"点击元素超时: {selector} (by={by})")
+            self.take_screenshot("click_timeout")
+            raise
+        except Exception as e:
+            ERROR.logger.error(f"点击元素失败: {selector} (by={by}), 错误: {str(e)}")
+            self.take_screenshot("click_error")
+            raise
+
+    def type(self, selector: str, text: str, by: str = 'css_selector', timeout: int = None, retry: bool = False):
+        """
+        清空并输入文本
+        :param selector: 选择器
+        :param text: 要输入的文本
+        :param by: 定位方式
+        :param timeout: 超时时间
+        :param retry: 是否重试
+        """
+        try:
+            element = self.find_element(selector, by, timeout)
+            element.clear()
+            element.send_keys(text)
+            INFO.logger.info(f"成功输入文本: {text} 到元素: {selector} (by={by})")
+        except TimeoutException:
+            ERROR.logger.error(f"输入文本超时: {text} 到元素: {selector} (by={by})")
+            self.take_screenshot("type_timeout")
+            if retry:
+                self.type(selector, text, by, timeout, retry=False)
+            else:
+                raise
+        except Exception as e:
+            ERROR.logger.error(f"输入文本失败: {text} 到元素: {selector} (by={by}), 错误: {str(e)}")
+            self.take_screenshot("type_error")
+            raise
+
+    def is_element_present(self, selector: str, by: str = 'css_selector') -> bool:
+        """
+        检查元素是否存在
+        :param selector: 选择器
+        :param by: 定位方式
+        :return: 元素是否存在
+        """
+        try:
+            self.find_element(selector, by)
+            return True
+        except TimeoutException:
+            return False
+        except Exception as e:
+            ERROR.logger.error(f"检查元素存在时失败: {selector} (by={by}), 错误: {str(e)}")
+            return False
 
     def take_screenshot(self, name: str):
         """
@@ -120,96 +162,49 @@ class BaseUtil:
             return None
 
     @staticmethod
-    def _convert_to_locator(selector: Union[str, Tuple, Locator]) -> Locator:
-        """
-        转换为Locator对象
-        :param selector: 选择器
-        :return: Locator对象
-        """
-        if isinstance(selector, Locator):
-            return selector
-        elif isinstance(selector, str):
-            return Locator('CSS_SELECTOR', selector)
-        elif isinstance(selector, tuple):
-            return Locator(selector[0], selector[1])
-        raise ValueError(f"无效的选择器类型: {type(selector)}")
+    def _clean_screenshots():
+        """清理历史截图"""
+        screenshots_path = os.path.join(root_path(), 'datas', 'screenshots')
+        if os.path.exists(screenshots_path):
+            shutil.rmtree(screenshots_path)
+        os.makedirs(screenshots_path, exist_ok=True)
+        INFO.logger.info("历史截图清理完成")
 
-    def click(self, selector, delay=0):
-        """
-        点击元素
-        :param selector: 元素选择器
-        :param delay: 点击前的延迟时间
-        """
-        locator = self._convert_to_locator(selector)
+    @staticmethod
+    def _clean_logs():
+        """清理历史日志"""
         try:
-            element = self.wait.until(
-                EC.element_to_be_clickable(locator.to_selenium())
-            )
-            if delay > 0:
-                time.sleep(delay)
-            element.click()
-            INFO.logger.info(f"成功点击元素: {selector}")
-        except TimeoutException:
-            ERROR.logger.error(f"点击元素超时: {selector}")
-            self.take_screenshot("点击超时")
-            raise
-        except WebDriverException as e:
-            ERROR.logger.error(f"点击元素时发生WebDriver异常: {selector}, 异常信息: {str(e)}")
-            self.take_screenshot("点击异常")
-            raise
+            logs_path = os.path.join(root_path(), 'logs')
+            if not os.path.exists(logs_path):
+                os.makedirs(logs_path)
+                return
+
+            # 获取当前日期
+            today = datetime.now().date()
+
+            # 遍历日志目录
+            for filename in os.listdir(logs_path):
+                if not filename.endswith('.log'):
+                    continue
+
+                file_path = os.path.join(logs_path, filename)
+                try:
+                    # 从文件名中提取日期（格式：xxx-2024-01-01.log）
+                    date_str = filename.split('-', 1)[1].split('.')[0]
+                    file_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+                    # 如果不是今天的日志，则删除
+                    if file_date < today:
+                        os.remove(file_path)
+                        INFO.logger.info(f"已删除历史日志文件: {filename}")
+                except (ValueError, IndexError):
+                    continue
+                except Exception as e:
+                    ERROR.logger.error(f"清理日志文件时发生错误: {str(e)}")
+
+            INFO.logger.info("历史日志清理完成")
         except Exception as e:
-            ERROR.logger.error(f"点击元素时发生未知异常: {selector}, 异常信息: {str(e)}")
-            self.take_screenshot("点击发生未知异常")
-            raise
-
-    def type(self, selector, text: str, timeout=None, retry=False):
-        """
-        清空+输入文本
-        :param selector: 元素选择器
-        :param text: 要输入的文本
-        :param timeout: 超时时间
-        :param retry: 是否重试
-        """
-        locator = self._convert_to_locator(selector)
-        try:
-            element = self.wait.until(
-                EC.presence_of_element_located(locator.to_selenium())
-            )
-            element.clear()
-            element.send_keys(text)
-            INFO.logger.info(f"成功输入文本: {text} 到元素: {selector}")
-        except TimeoutException:
-            ERROR.logger.error(f"输入文本超时: {text} 到元素: {selector}")
-            self.take_screenshot("type_timeout")
-            if retry:
-                self.type(selector, text, timeout, retry=False)
-            else:
-                raise
-        except WebDriverException as e:
-            ERROR.logger.error(f"输入文本时发生WebDriver异常: {text} 到元素: {selector}, 异常信息: {str(e)}")
-            self.take_screenshot("type_exception")
-            raise
-        except Exception as e:
-            ERROR.logger.error(f"输入文本时发生未知异常: {text} 到元素: {selector}, 异常信息: {str(e)}")
-            self.take_screenshot("文本类型未知异常")
-            raise
-
-    def is_element_present(self, selector: Union[str, Tuple, Locator]) -> bool:
-        """
-        检查元素是否存在
-        :param selector: 元素选择器
-        :return: 元素是否存在
-        """
-        try:
-            locator = self._convert_to_locator(selector)
-            self.wait.until(
-                EC.presence_of_element_located(locator.to_selenium())
-            )
-            return True
-        except TimeoutException:
-            return False
-        except WebDriverException as e:
-            raise WebDriverException(f"检查元素存在时失败: {str(e)}")
+            ERROR.logger.error(f"清理日志目录时发生错误: {str(e)}")
 
     def open(self, url: str):
         """
@@ -231,3 +226,8 @@ class BaseUtil:
             ERROR.logger.error(f"打开URL时发生未知异常: {url}, 异常信息: {str(e)}")
             self.take_screenshot("open_url_unknown_exception")
             raise
+
+    @staticmethod
+    def sleep(seconds: int) -> None:
+        """暂停执行"""
+        time.sleep(seconds)
