@@ -9,6 +9,8 @@
 import pytest
 from tests.test_base_case import BaseCaseApp
 from utils.log_tool.log_control import INFO, ERROR
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.actions.pointer_input import PointerInput
 
 
 class TestAppLogin(BaseCaseApp):
@@ -21,9 +23,12 @@ class TestAppLogin(BaseCaseApp):
         try:
             INFO.logger.info("开始执行 test_app_login 测试")
             self.login()
+            print(self.current_package)
+            print(self.current_activity)
             self.take_screenshot("after_login")
-            self.close_app("com.android.browser")
-            self.start_app("com.tongjiwisdom")
+            self.open_notify()
+
+            ActionChains(self.driver).w3c_actions.pointer_action.click_and_hold()
 
         except Exception as e:
             ERROR.logger.error(f"测试执行失败: {str(e)}")

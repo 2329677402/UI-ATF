@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional, Self
 from appium.webdriver.webdriver import WebDriver as AppDriver
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
@@ -7,8 +7,7 @@ from utils.api_tool.base_util import BaseUtil
 
 class BaseCase:
     """测试基类"""
-    driver: WebDriver = None
-    app_driver: AppDriver = None
+    driver: WebDriver or AppDriver = None
     _util: BaseUtil = None
 
     def setup_actions(self):
@@ -17,179 +16,488 @@ class BaseCase:
             raise ValueError("执行测试前必须初始化driver对象!")
         self._util = BaseUtil(self.driver)
 
-    # ====== 自定义方法 ======
-    def open(self, url) -> None:
-        """打开网页"""
+    def open(self, url: str) -> None:
+        """
+        打开网页
+
+        :param url: 要打开的网页URL
+        :Usage:
+            self.open("https://www.google.com")
+        """
         self._util.open(url)
 
-    def click(self, selector, by='css_selector', delay=0) -> None:
-        """点击元素"""
+    def click(self, selector: str, by: str = 'css_selector', delay: int = 0) -> None:
+        """
+        点击元素
+
+        :param selector: 元素选择器
+        :param by: 定位方式，默认为'css_selector'
+        :param delay: 点击前的延迟时间，默认为0秒
+        :Usage:
+            self.click("#submit_button")
+        """
         self._util.click(selector, by, delay)
 
-    def type(self, selector, text, by='css_selector', timeout=None, retry: bool = False):
-        """输入文本"""
+    def type(self, selector: str, text: str, by: str = 'css_selector', timeout: Optional[int] = None,
+             retry: bool = False) -> None:
+        """
+        输入文本
+
+        :param selector: 元素选择器
+        :param text: 要输入的文本
+        :param by: 定位方式，默认为'css_selector'
+        :param timeout: 超时时间，默认为None
+        :param retry: 是否重试，默认为False
+        :Usage:
+            self.type("#input_field", "example text"，timeout=10，retry=True)
+        """
         self._util.type(selector, text, by, timeout, retry)
 
-    def is_element_present(self, selector, by='css_selector') -> bool:
-        """检查元素是否存在"""
+    def is_element_present(self, selector: str, by: str = 'css_selector') -> bool:
+        """
+        检查元素是否存在
+
+        :param selector: 元素选择器
+        :param by: 定位方式，默认为'css_selector'
+        :return: 元素是否存在
+        :Usage:
+            is_present = self.is_element_present("#element_id")
+        """
         return self._util.is_element_present(selector, by)
 
-    def take_screenshot(self, name) -> str:
-        """截取屏幕截图"""
+    def take_screenshot(self, name: str) -> str:
+        """
+        截取屏幕截图
+
+        :param name: 截图名称
+        :return: 截图文件路径
+        :Usage:
+            screenshot_path = self.take_screenshot("screenshot_name")
+        """
         return self._util.take_screenshot(name)
 
-    def sleep(self, seconds=2) -> None:
-        """暂停执行"""
+    def sleep(self, seconds: int = 2) -> None:
+        """
+        暂停执行
+
+        :param seconds: 暂停时间，默认为2秒
+        :Usage:
+            self.sleep(5)
+        """
         self._util.sleep(seconds)
 
-    def send_keys(self, selector, text, by='css_selector') -> None:
-        """输入文本"""
+    def send_keys(self, selector: str, text: str, by: str = 'css_selector') -> None:
+        """
+        输入文本
+
+        :param selector: 元素选择器
+        :param text: 要输入的文本
+        :param by: 定位方式，默认为'css_selector'
+        :Usage:
+            self.send_keys("#input_field", "example text")
+        """
         self._util.find_element(selector, by).send_keys(text)
 
-    def start_app(self, app_package) -> None:
-        """启动App"""
+    def start_app(self, app_package: str) -> None:
+        """
+        启动App
+
+        :param app_package: App包名
+        :Usage:
+            self.start_app("com.example.app")
+        """
         self._util.start_app(app_package)
 
-    def close_app(self, app_package) -> None:
-        """关闭App"""
+    def close_app(self, app_package: str) -> None:
+        """
+        关闭App
+
+        :param app_package: App包名
+        :Usage:
+            self.close_app("com.example.app")
+        """
         self._util.close_app(app_package)
 
     @property
     def current_package(self) -> str:
-        """获取当前App包名"""
+        """
+        获取当前App包名
+
+        :return: 当前App包名, 如：com.android.browser
+        :Usage:
+            print(self.current_package)
+        """
         return self._util.current_package()
 
     @property
     def current_activity(self) -> str:
-        """获取当前App活动名"""
+        """
+        获取当前App活动名
+
+        :return: 当前App活动名，如：.BrowserActivity
+        :Usage:
+            print(self.current_activity)
+        """
         return self._util.current_activity()
 
-    def install_app(self, app_path) -> None:
-        """安装App"""
+    def install_app(self, app_path: str) -> None:
+        """
+        安装App
+
+        :param app_path: App路径
+        :Usage:
+            self.install_app("/path/to/app.apk")
+        """
         self._util.install_app(app_path)
 
-    def uninstall_app(self, app_package) -> None:
-        """卸载App"""
+    def uninstall_app(self, app_package: str) -> None:
+        """
+        卸载App
+
+        :param app_package: App包名
+        :Usage:
+            self.uninstall_app("com.example.app")
+        """
         self._util.uninstall_app(app_package)
 
-    def is_app_installed(self, app_package) -> bool:
-        """检查App是否安装"""
+    def is_app_installed(self, app_package: str) -> bool:
+        """
+        检查App是否安装
+
+        :param app_package: App包名
+        :return: App是否安装
+        :Usage:
+            is_installed = self.is_app_installed("com.example.app")
+        """
         return self._util.is_app_installed(app_package)
 
-    def background_app(self, seconds) -> None:
-        """App后台运行"""
+    def background_app(self, seconds: int) -> None:
+        """
+        App后台运行
+
+        :param seconds: 后台运行时间，单位为秒
+        :Usage:
+            self.background_app(5)
+        """
         self._util.background_app(seconds)
 
     @property
     def get_network_connect(self) -> int:
         """
         获取手机网络连接类型
-            +--------------------+------+------+---------------+
-            | Value (Alias)      | Data | Wifi | Airplane Mode |
-            +====================+======+======+===============+
-            | 0 (None)           | 0    | 0    | 0             |
-            +--------------------+------+------+---------------+
-            | 1 (Airplane Mode)  | 0    | 0    | 1             |
-            +--------------------+------+------+---------------+
-            | 2 (Wifi only)      | 0    | 1    | 0             |
-            +--------------------+------+------+---------------+
-            | 4 (Data only)      | 1    | 0    | 0             |
-            +--------------------+------+------+---------------+
-            | 6 (All network on) | 1    | 1    | 0             |
-            +--------------------+------+------+---------------+
+
+        :return: 网络连接类型
+        :Usage:
+            network_type = self.get_network_connect
+
+        +--------------------+------+------+---------------+
+        | Value (Alias)      | Data | Wifi | Airplane Mode |
+        +====================+======+======+===============+
+        | 0 (None)           | 0    | 0    | 0             |
+        +--------------------+------+------+---------------+
+        | 1 (Airplane Mode)  | 0    | 0    | 1             |
+        +--------------------+------+------+---------------+
+        | 2 (Wifi only)      | 0    | 1    | 0             |
+        +--------------------+------+------+---------------+
+        | 4 (Data only)      | 1    | 0    | 0             |
+        +--------------------+------+------+---------------+
+        | 6 (All network on) | 1    | 1    | 0             |
+        +--------------------+------+------+---------------+
         """
         return self._util.get_network_connect()
 
-    def set_network_connect(self, connect_type) -> None:
-        """设置手机网络连接类型"""
+    def set_network_connect(self, connect_type: int) -> None:
+        """
+        设置手机网络连接类型
+
+        :param connect_type: 网络连接类型
+        :Usage:
+            self.set_network_connect(2)
+        """
         self._util.set_network_connect(connect_type)
 
-    def press_keycode(self, keycode) -> None:
-        """按键事件"""
-        self._util.press_keycode(keycode)
+    def press_keycode(self, keycode: int, metastate: Optional[int] = None, flags: Optional[int] = None) -> None:
+        """
+        按键事件
+
+        :param keycode: 按键码
+        :param metastate: 元状态，如：1 表示 META_SHIFT_ON
+        :param flags: 标志，如：0 表示没有特殊标志
+        :Usage:
+            self.press_keycode(66)
+
+        +--------------------+------------------+----------------------+
+        | 键码                | 名称             | 描述                 |
+        +====================+==================+======================+
+        | 3                  | HOME             | 返回主屏幕            |
+        +--------------------+------------------+----------------------+
+        | 4                  | BACK             | 返回                 |
+        +--------------------+------------------+----------------------+
+        | 24                 | VOLUME_UP        | 增加音量             |
+        +--------------------+------------------+----------------------+
+        | 25                 | VOLUME_DOWN      | 减少音量             |
+        +--------------------+------------------+----------------------+
+        | 26                 | POWER            | 电源                 |
+        +--------------------+------------------+----------------------+
+        | 27                 | CAMERA           | 拍照                 |
+        +--------------------+------------------+----------------------+
+        | 66                 | ENTER            | 回车                 |
+        +--------------------+------------------+----------------------+
+        | 67                 | DELETE           | 删除                 |
+        +--------------------+------------------+----------------------+
+        | 82                 | MENU             | 菜单                 |
+        +--------------------+------------------+----------------------+
+        | 122                | MOVE_HOME        | 光标移动到行首        |
+        +--------------------+------------------+----------------------+
+        | 123                | MOVE_END         | 光标移动到行尾        |
+        +--------------------+------------------+----------------------+
+        | 187                | APP_SWITCH       | 切换应用             |
+        +--------------------+------------------+----------------------+
+        """
+        self._util.press_keycode(keycode, metastate, flags)
 
     def open_notify(self) -> None:
-        """打开通知栏"""
+        """
+        打开通知栏
+
+        :Usage:
+            self.open_notify()
+        """
         self._util.open_notify()
 
     @property
-    def contexts(self) -> list:
-        """获取所有上下文"""
+    def contexts(self) -> List[str]:
+        """
+        获取所有上下文名称
+
+        :return: 上下文列表，如：['NATIVE_APP', 'WEBVIEW_com.example.app']
+        :Usage:
+            contexts = self.contexts
+        """
         return self._util.contexts()
 
-    def switch_to(self, context) -> None:
-        """切换上下文"""
-        self._util.switch_to(context)
+    def switch_to_context(self, context: str) -> None:
+        """
+        切换上下文
 
-    # ====== Selenium ======
-    def get(self, url) -> None:
-        """访问URL"""
-        self.driver.get(url)
+        :param context: 上下文名称
+        :Usage:
+            self.switch_to_context("WEBVIEW_com.example.app")
+        """
+        self._util.switch_to_context(context)
 
-    def find_element(self, by, value) -> WebElement:
-        """查找单个元素"""
-        return self.driver.find_element(by, value)
+    def find_element(self, selector: str, by: str = 'css_selector', timeout: Optional[int] = None) -> WebElement:
+        """
+        查找单个元素
 
-    def find_elements(self, by, value) -> List[WebElement]:
-        """查找多个元素"""
-        return self.driver.find_elements(by, value)
+        :param selector: 元素选择器
+        :param by: 定位方式，默认为'css_selector'
+        :param timeout: 超时时间，默认为None
+        :return: WebElement对象
+        :Usage:
+            element = self.find_element("#element_id")
+        """
+        return self._util.find_element(selector, by, timeout)
+
+    def find_elements(self, selector: str, by: str = 'css_selector', timeout: Optional[int] = None) -> List[WebElement]:
+        """
+        查找多个元素
+
+        :param selector: 元素选择器
+        :param by: 定位方式，默认为'css_selector'
+        :param timeout: 超时时间，默认为None
+        :return: WebElement对象列表
+        :Usage:
+            elements = self.find_elements(".element_class")
+        """
+        return self._util.find_elements(selector, by, timeout)
 
     def refresh(self) -> None:
-        """刷新页面"""
-        self.driver.refresh()
+        """
+        刷新页面
+
+        :Usage:
+            self.refresh()
+        """
+        self._util.refresh()
 
     def back(self) -> None:
-        """返回上一页"""
-        self.driver.back()
+        """
+        返回上一页
+
+        :Usage:
+            self.back()
+        """
+        self._util.back()
 
     def forward(self) -> None:
-        """前进到下一页"""
-        self.driver.forward()
+        """
+        前进到下一页
+
+        :Usage:
+            self.forward()
+        """
+        self._util.forward()
 
     def close(self) -> None:
-        """关闭当前窗口"""
-        self.driver.close()
+        """
+        关闭当前窗口
+
+        :Usage:
+            self.close()
+        """
+        self._util.close()
 
     def quit(self) -> None:
-        """退出浏览器"""
-        self.driver.quit()
+        """
+        退出浏览器
+
+        :Usage:
+            self.quit()
+        """
+        self._util.quit()
 
     def maximize_window(self) -> None:
-        """最大化窗口"""
-        self.driver.maximize_window()
+        """
+        最大化窗口
+
+        :Usage:
+            self.maximize_window()
+        """
+        self._util.maximize_window()
 
     def minimize_window(self) -> None:
-        """最小化窗口"""
-        self.driver.minimize_window()
+        """
+        最小化窗口
 
-    def switch_to_frame(self, frame_reference) -> None:
-        """切换到iframe"""
-        self.driver.switch_to.frame(frame_reference)
+        :Usage:
+            self.minimize_window()
+        """
+        self._util.minimize_window()
 
-    def switch_to_default_content(self) -> None:
-        """切换到默认内容"""
-        self.driver.switch_to.default_content()
+    def switch_to_frame(self, iframe) -> None:
+        """
+        切换到iframe
+
+        :param iframe: iframe元素或索引
+        :Usage:
+            self.switch_to_frame("iframe_name")
+        """
+        self._util.switch_to_frame(iframe)
+
+    def switch_to_default_frame(self) -> None:
+        """
+        切换到默认框架
+
+        :Usage:
+            self.switch_to_default_frame()
+        """
+        self._util.switch_to_default_frame()
 
     def execute_script(self, script: str, *args) -> Any:
-        """执行JavaScript代码"""
-        return self.driver.execute_script(script, *args)
+        """
+        执行JavaScript代码
+
+        :param script: JavaScript代码
+        :param args: 传递给JavaScript代码的参数
+        :return: JavaScript代码的执行结果
+        :Usage:
+            result = self.execute_script("return document.title;")
+        """
+        return self._util.execute_script(script, *args)
 
     @property
     def current_url(self) -> str:
-        """获取当前URL"""
-        return self.driver.current_url
+        """
+        获取当前URL
+
+        :return: 当前URL
+        :Usage:
+            url = self.current_url
+        """
+        return self._util.current_url()
 
     @property
     def title(self) -> str:
-        """获取页面标题"""
-        return self.driver.title
+        """
+        获取页面标题
+
+        :return: 页面标题
+        :Usage:
+            title = self.title
+        """
+        return self._util.title()
 
     @property
     def page_source(self) -> str:
-        """获取页面源码"""
-        return self.driver.page_source
+        """
+        获取页面源码
+
+        :return: 页面源码
+        :Usage:
+            source = self.page_source
+        """
+        return self._util.page_source()
 
     @property
     def current_window_handle(self) -> str:
-        """获取当前窗口句柄"""
-        return self.driver.current_window_handle
+        """
+        获取当前窗口句柄
+
+        :return: 当前窗口句柄
+        :Usage:
+            handle = self.current_window_handle
+        """
+        return self._util.current_window_handle()
+
+    def tap(self, x: int, y: int, duration: int = 100) -> None:
+        """
+        点击屏幕上的指定坐标
+
+        :param x: X坐标
+        :param y: Y坐标
+        :param duration: 持续时间（毫秒）
+        :Usage:
+            self.tap(100, 200)
+        """
+        self._util.tap(x, y, duration)
+
+    def drag_and_drop(self, start_element: WebElement, end_element: WebElement, pause: Optional[float] = None) -> Self:
+        """
+        拖拽元素
+
+        :param start_element: 起始元素
+        :param end_element: 结束元素
+        :param pause: 拖拽前的暂停时间(ms)
+        :return: Union['WebDriver', 'ActionHelpers']: Self instance
+        :Usage:
+            self.drag_and_drop(start_element, end_element)
+        """
+        self._util.drag_and_drop(start_element, end_element, pause)
+
+    def scroll(self, start_x: int, start_y: int, end_x: int, end_y: int) -> None:
+        """
+        滚动屏幕
+
+        :param start_x: 起始X坐标
+        :param start_y: 起始Y坐标
+        :param end_x: 结束X坐标
+        :param end_y: 结束Y坐标
+        :Usage:
+            self.scroll(100, 200, 300, 400)
+        """
+        self._util.scroll(start_x, start_y, end_x, end_y)
+
+    def swipe(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: int = 1000) -> None:
+        """
+        滑动屏幕
+
+        :param start_x: 起始X坐标
+        :param start_y: 起始Y坐标
+        :param end_x: 结束X坐标
+        :param end_y: 结束Y坐标
+        :param duration: 持续时间（毫秒）
+        :Usage:
+            self.swipe(100, 200, 300, 400, 1000)
+        """
+        self._util.swipe(start_x, start_y, end_x, end_y, duration)

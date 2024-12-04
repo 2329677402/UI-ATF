@@ -9,12 +9,12 @@
 import os
 import time
 import pytest
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from appium import webdriver as appium_webdriver
-from appium.options.common.base import AppiumOptions
 from common.setting import root_path
+from selenium import webdriver as WebDriver
+from appium import webdriver as AppDriver
+from selenium.webdriver.chrome.service import Service
+from appium.options.common.base import AppiumOptions
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 class DriverManager:
@@ -79,7 +79,7 @@ def web_driver():
         print(f"\n当前使用的WebDriver驱动路径: {driver_path}")
 
         service = Service(executable_path=driver_path)
-        options = webdriver.ChromeOptions()
+        options = WebDriver.ChromeOptions()
         options.add_argument('--start-maximized')
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--no-sandbox')
@@ -87,12 +87,11 @@ def web_driver():
         options.add_argument('--verbose')
         options.add_argument('--log-level=3')
 
-        driver = webdriver.Chrome(service=service, options=options)
+        driver = WebDriver.Chrome(service=service, options=options)
         print("开始初始化WebDriver对象, 请稍候...")
         print("初始化完成, 开始执行测试用例...")
         time.sleep(0.5)
         yield driver
-        driver.set_network_conditions()
     except Exception as e:
         print(f"WebDriver 初始化失败: {str(e)}")
         raise
@@ -125,12 +124,11 @@ def app_driver():
             "appium:noReset": True
         })
 
-        driver = appium_webdriver.Remote("http://127.0.0.1:4723", options=options)
+        driver = AppDriver.Remote("http://127.0.0.1:4723", options=options)
         print("开始初始化AppDriver对象, 请稍候...")
         print("初始化完成, 开始执行测试用例...")
         time.sleep(0.5)
         yield driver
-        driver.switch_to.context()
     except Exception as e:
         print(f"AppDriver 初始化失败: {str(e)}")
         raise

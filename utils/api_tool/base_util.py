@@ -10,6 +10,7 @@ import os
 import time
 import shutil
 from datetime import datetime
+from typing import List, Any, Optional, Self
 from common.setting import root_path, Settings
 from utils.log_tool.log_control import INFO, ERROR
 from appium.webdriver.webdriver import WebDriver as AppDriver
@@ -57,21 +58,19 @@ class BaseUtil:
         :param timeout: 超时时间
         :return: WebElement对象
         """
-        if timeout is not None:
-            # 使用传入的超时时间创建新的 WebDriverWait 实例
-            temp_wait = WebDriverWait(
-                self._driver,
-                timeout,
-                poll_frequency=self._poll_frequency
-            )
-        else:
-            temp_wait = self.wait
+        temp_wait = self.wait if timeout is None else WebDriverWait(
+            self._driver,
+            timeout,
+            poll_frequency=self._poll_frequency
+        )
 
         try:
             locator = SelectorUtil.get_selenium_locator(selector, by)
-            return temp_wait.until(
+            element = temp_wait.until(
                 EC.presence_of_element_located(locator)
             )
+            INFO.logger.info(f"成功查找到元素: {selector} (by={by})")
+            return element
         except TimeoutException:
             ERROR.logger.error(f"查找元素超时: {selector} (by={by})")
             self.take_screenshot("find_element_timeout")
@@ -79,6 +78,36 @@ class BaseUtil:
         except Exception as e:
             ERROR.logger.error(f"查找元素失败: {selector} (by={by}), 错误: {str(e)}")
             self.take_screenshot("find_element_error")
+            raise
+
+    def find_elements(self, selector: str, by: str = 'css_selector', timeout=None) -> List[WebElement]:
+        """
+        查找多个元素
+        :param selector: 选择器
+        :param by: 定位方式
+        :param timeout: 超时时间
+        :return: WebElement对象列表
+        """
+        temp_wait = self.wait if timeout is None else WebDriverWait(
+            self._driver,
+            timeout,
+            poll_frequency=self._poll_frequency
+        )
+
+        try:
+            locator = SelectorUtil.get_selenium_locator(selector, by)
+            elements = temp_wait.until(
+                EC.presence_of_all_elements_located(locator)
+            )
+            INFO.logger.info(f"成功查找到元素: {selector} (by={by})")
+            return elements
+        except TimeoutException:
+            ERROR.logger.error(f"查找元素超时: {selector} (by={by})")
+            self.take_screenshot("find_elements_timeout")
+            raise
+        except Exception as e:
+            ERROR.logger.error(f"查找元素失败: {selector} (by={by}), 错误: {str(e)}")
+            self.take_screenshot("find_elements_error")
             raise
 
     def click(self, selector: str, by: str = 'css_selector', delay: int = 0) -> None:
@@ -210,10 +239,10 @@ class BaseUtil:
 
             # 保存截图
             self._driver.save_screenshot(filepath)
-            print(f"截图保存至: {filepath}")
+            INFO.logger.info(f"截图保存至: {filepath}")
             return filepath
         except Exception as e:
-            print(f"截图失败: {str(e)}")
+            ERROR.logger.error(f"截图失败: {str(e)}")
             return None
 
     @staticmethod
@@ -387,16 +416,27 @@ class BaseUtil:
             ERROR.logger.error(f"设置网络连接类型失败, 错误信息: {e}")
             raise
 
-    def press_keycode(self, keycode: int) -> None:
-        """发送按键码"""
+    def press_keycode(self, keycode: int, metastate: Optional[int] = None, flags: Optional[int] = None) -> None:
+        """
+        发送按键码
+
+        :param keycode: 按键码
+        :param metastate: 按键的元状态（可选）
+        :param flags: 按键事件的标志（可选）
+        """
         try:
             if isinstance(self._driver, AppDriver):
-                self._driver.press_keycode(keycode)
+                if metastate is not None and flags is not None:
+                    self._driver.press_keycode(keycode, metastate, flags)
+                elif metastate is not None:
+                    self._driver.press_keycode(keycode, metastate)
+                else:
+                    self._driver.press_keycode(keycode)
                 INFO.logger.info(f"成功发送按键码: {keycode}")
             else:
                 raise NotImplementedError("Web端不支持press_keycode方法")
         except WebDriverException as e:
-            ERROR.logger.error(f"发送按键码失败, 错误信息: {e}")
+            ERROR.logger.error(f"发送按键码失败: {keycode}, 错误信息: {e}")
             raise
 
     def open_notify(self) -> None:
@@ -411,20 +451,227 @@ class BaseUtil:
             ERROR.logger.error(f"打开通知栏失败, 错误信息: {e}")
             raise
 
-    def contexts(self) -> list:
+    def contexts(self):
         """获取上下文"""
         if isinstance(self._driver, AppDriver):
             return self._driver.contexts
         raise NotImplementedError("Web端不支持contexts方法")
 
-    def switch_to(self, context: str) -> None:
+    def switch_to_context(self, context: str) -> None:
         """切换上下文"""
         try:
             if isinstance(self._driver, AppDriver):
                 self._driver.switch_to.context(context)
                 INFO.logger.info(f"成功切换到上下文: {context}")
             else:
-                raise NotImplementedError("Web端不支持switch_to方法")
+                raise NotImplementedError("Web端不支持switch_to_context方法")
         except WebDriverException as e:
             ERROR.logger.error(f"切换上下文失败, 错误信息: {e}")
+            raise
+
+    def refresh(self) -> None:
+        """刷新页面"""
+        try:
+            self._driver.refresh()
+            INFO.logger.info("页面刷新成功")
+        except Exception as e:
+            ERROR.logger.error(f"刷新页面失败: {str(e)}")
+            self.take_screenshot("refresh_error")
+            raise
+
+    def back(self) -> None:
+        """返回上一页"""
+        try:
+            self._driver.back()
+            INFO.logger.info("成功返回上一页")
+        except Exception as e:
+            ERROR.logger.error(f"返回上一页失败: {str(e)}")
+            self.take_screenshot("back_error")
+            raise
+
+    def forward(self) -> None:
+        """前进到下一页"""
+        try:
+            self._driver.forward()
+            INFO.logger.info("成功前进到下一页")
+        except Exception as e:
+            ERROR.logger.error(f"前进到下一页失败: {str(e)}")
+            self.take_screenshot("forward_error")
+            raise
+
+    def close(self) -> None:
+        """关闭当前窗口"""
+        try:
+            self._driver.close()
+            INFO.logger.info("成功关闭当前窗口")
+        except Exception as e:
+            ERROR.logger.error(f"关闭当前窗口失败: {str(e)}")
+            self.take_screenshot("close_error")
+            raise
+
+    def quit(self) -> None:
+        """退出浏览器"""
+        try:
+            self._driver.quit()
+            INFO.logger.info("成功退出浏览器")
+        except Exception as e:
+            ERROR.logger.error(f"退出浏览器失败: {str(e)}")
+            self.take_screenshot("quit_error")
+            raise
+
+    def maximize_window(self) -> None:
+        """最大化窗口"""
+        try:
+            self._driver.maximize_window()
+            INFO.logger.info("成功最大化窗口")
+        except Exception as e:
+            ERROR.logger.error(f"最大化窗口失败: {str(e)}")
+            self.take_screenshot("maximize_window_error")
+            raise
+
+    def minimize_window(self) -> None:
+        """最小化窗口"""
+        try:
+            self._driver.minimize_window()
+            INFO.logger.info("成功最小化窗口")
+        except Exception as e:
+            ERROR.logger.error(f"最小化窗口失败: {str(e)}")
+            self.take_screenshot("minimize_window_error")
+            raise
+
+    def switch_to_frame(self, iframe) -> None:
+        """切换到iframe"""
+        try:
+            self._driver.switch_to.frame(iframe)
+            INFO.logger.info(f"成功切换到iframe: {iframe}")
+        except Exception as e:
+            ERROR.logger.error(f"切换到iframe失败: {str(e)}")
+            self.take_screenshot("switch_to_frame_error")
+            raise
+
+    def switch_to_default_frame(self) -> None:
+        """切换到默认内容"""
+        try:
+            self._driver.switch_to.default_content()
+            INFO.logger.info("成功切换到默认内容")
+        except Exception as e:
+            ERROR.logger.error(f"切换到默认内容失败: {str(e)}")
+            self.take_screenshot("switch_to_default_frame_error")
+            raise
+
+    def execute_script(self, script: str, *args) -> Any:
+        """执行JavaScript代码"""
+        try:
+            result = self._driver.execute_script(script, *args)
+            INFO.logger.info(f"成功执行JavaScript代码: {script}")
+            return result
+        except Exception as e:
+            ERROR.logger.error(f"执行JavaScript代码失败: {str(e)}")
+            self.take_screenshot("execute_script_error")
+            raise
+
+    def current_url(self) -> str:
+        """获取当前URL"""
+        try:
+            url = self._driver.current_url
+            return url
+        except Exception as e:
+            ERROR.logger.error(f"获取当前URL失败: {str(e)}")
+            self.take_screenshot("current_url_error")
+            raise
+
+    def current_window_handle(self) -> str:
+        """获取当前窗口句柄"""
+        try:
+            handle = self._driver.current_window_handle
+            return handle
+        except Exception as e:
+            ERROR.logger.error(f"获取当前窗口句柄失败: {str(e)}")
+            self.take_screenshot("current_window_handle_error")
+            raise
+
+    def title(self) -> str:
+        """获取页面标题"""
+        try:
+            title = self._driver.title
+            INFO.logger.info(f"当前页面标题: {title}")
+            return title
+        except Exception as e:
+            ERROR.logger.error(f"获取页面标题失败: {str(e)}")
+            self.take_screenshot("title_error")
+            raise
+
+    def page_source(self) -> str:
+        """获取页面源码"""
+        try:
+            source = self._driver.page_source
+            INFO.logger.info("成功获取页面源码")
+            return source
+        except Exception as e:
+            ERROR.logger.error(f"获取页面源码失败: {str(e)}")
+            self.take_screenshot("page_source_error")
+            raise
+
+    def tap(self, x: int, y: int, duration: int = 100) -> None:
+        """
+        点击屏幕上的指定坐标
+
+        :param x: X坐标
+        :param y: Y坐标
+        :param duration: 持续时间（毫秒）
+        """
+        try:
+            self._driver.tap([(x, y)], duration)
+            INFO.logger.info(f"成功点击坐标: ({x}, {y}) 持续时间: {duration}ms")
+        except WebDriverException as e:
+            ERROR.logger.error(f"点击坐标失败: ({x}, {y}), 错误信息: {e}")
+            raise
+
+    def drag_and_drop(self, start_element: WebElement, end_element: WebElement, pause: Optional[float] = None) -> Self:
+        """
+        拖拽元素
+
+        :param start_element: 起始元素
+        :param end_element: 结束元素
+        :param pause: 暂停时间（ms）
+        :return: Union['WebDriver', 'ActionHelpers']: Self instance
+        """
+        try:
+            self._driver.drag_and_drop(start_element, end_element, pause)
+            INFO.logger.info(f"成功拖拽元素从 {start_element} 到 {end_element}")
+        except WebDriverException as e:
+            ERROR.logger.error(f"拖拽元素失败: 从 {start_element} 到 {end_element}, 错误信息: {e}")
+            raise
+
+    def scroll(self, start_x: int, start_y: int, end_x: int, end_y: int) -> None:
+        """
+        滚动屏幕
+
+        :param start_x: 起始X坐标
+        :param start_y: 起始Y坐标
+        :param end_x: 结束X坐标
+        :param end_y: 结束Y坐标
+        """
+        try:
+            self._driver.scroll(start_x, start_y, end_x, end_y)
+            INFO.logger.info(f"成功滚动屏幕从 ({start_x}, {start_y}) 到 ({end_x}, {end_y})")
+        except WebDriverException as e:
+            ERROR.logger.error(f"滚动屏幕失败: 从 ({start_x}, {start_y}) 到 ({end_x}, {end_y}), 错误���息: {e}")
+            raise
+
+    def swipe(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: int = 1000) -> None:
+        """
+        滑动屏幕
+
+        :param start_x: 起始X坐标
+        :param start_y: 起始Y坐标
+        :param end_x: 结束X坐标
+        :param end_y: 结束Y坐标
+        :param duration: 持续时间（毫秒）
+        """
+        try:
+            self._driver.swipe(start_x, start_y, end_x, end_y, duration)
+            INFO.logger.info(f"成功滑动屏幕从 ({start_x}, {start_y}) 到 ({end_x}, {end_y}) 持续时间: {duration}ms")
+        except WebDriverException as e:
+            ERROR.logger.error(f"滑动屏幕失败: 从 ({start_x}, {start_y}) 到 ({end_x}, {end_y}), 错误信息: {e}")
             raise
