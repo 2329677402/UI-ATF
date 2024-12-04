@@ -1,4 +1,13 @@
-from typing import Any, List, Optional, Self
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+"""
+@ Date        : 2024/12/4 下午8:40
+@ Author      : Poco Ray
+@ File        : base_case.py
+@ Description : 测试基类
+"""
+
+from typing import Any, List, Optional, Self, Tuple
 from appium.webdriver.webdriver import WebDriver as AppDriver
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.remote.webelement import WebElement
@@ -226,6 +235,7 @@ class BaseCase:
         :Usage:
             self.press_keycode(66)
 
+        常用按键码列表：
         +--------------------+------------------+----------------------+
         | 键码                | 名称             | 描述                 |
         +====================+==================+======================+
@@ -450,17 +460,18 @@ class BaseCase:
         """
         return self._util.current_window_handle()
 
-    def tap(self, x: int, y: int, duration: int = 100) -> None:
+    def tap(self, positions: List[Tuple[int, int]], duration: Optional[int] = 100) -> Self:
         """
         点击屏幕上的指定坐标
 
-        :param x: X坐标
-        :param y: Y坐标
-        :param duration: 持续时间（毫秒）
+        :param positions: 一个包含 x/y 坐标的元组数组，长度最多为 5
+        :param duration: 单次点击持续时间（毫秒）
+        :return: BaseCase对象, 允许链式调用
         :Usage:
-            self.tap(100, 200)
+            self.tap([(100, 20), (100, 60), (100, 100)], 500)
         """
-        self._util.tap(x, y, duration)
+        self._util.tap(positions, duration)
+        return self
 
     def drag_and_drop(self, start_element: WebElement, end_element: WebElement, pause: Optional[float] = None) -> Self:
         """
@@ -468,27 +479,29 @@ class BaseCase:
 
         :param start_element: 起始元素
         :param end_element: 结束元素
-        :param pause: 拖拽前的暂停时间(ms)
-        :return: Union['WebDriver', 'ActionHelpers']: Self instance
+        :param pause: 拖拽前的暂停时间(秒)
+        :return: BaseCase对象, 允许链式调用
         :Usage:
-            self.drag_and_drop(start_element, end_element)
+            self.drag_and_drop(el1, el2, 0.2)
         """
         self._util.drag_and_drop(start_element, end_element, pause)
+        return self
 
-    def scroll(self, start_x: int, start_y: int, end_x: int, end_y: int) -> None:
+    def scroll(self, start_element: WebElement, end_element: WebElement, duration: Optional[int] = None) -> Self:
         """
-        滚动屏幕
+        滚动元素
 
-        :param start_x: 起始X坐标
-        :param start_y: 起始Y坐标
-        :param end_x: 结束X坐标
-        :param end_y: 结束Y坐标
+        :param start_element: 起始元素
+        :param end_element: 结束元素
+        :param duration: 滚动持续时间（毫秒）
+        :return: BaseCase对象, 允许链式调用
         :Usage:
-            self.scroll(100, 200, 300, 400)
+            self.scroll(el1, el2, 1000)
         """
-        self._util.scroll(start_x, start_y, end_x, end_y)
+        self._util.scroll(start_element, end_element, duration)
+        return self
 
-    def swipe(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: int = 1000) -> None:
+    def swipe(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: int = None) -> Self:
         """
         滑动屏幕
 
@@ -501,3 +514,4 @@ class BaseCase:
             self.swipe(100, 200, 300, 400, 1000)
         """
         self._util.swipe(start_x, start_y, end_x, end_y, duration)
+        return self

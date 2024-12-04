@@ -10,7 +10,7 @@ import os
 import time
 import shutil
 from datetime import datetime
-from typing import List, Any, Optional, Self
+from typing import List, Any, Optional, Self, Tuple
 from common.setting import root_path, Settings
 from utils.log_tool.log_control import INFO, ERROR
 from appium.webdriver.webdriver import WebDriver as AppDriver
@@ -220,12 +220,16 @@ class BaseUtil:
             ERROR.logger.error(f"检查元素存在时失败: {selector} (by={by}), 错误: {str(e)}")
             return False
 
-    def take_screenshot(self, name: str):
+    def take_screenshot(self, name: str, wait: Optional[float] = None):
         """
         截取当前页面截图
         :param name: 截图名称
+        :param wait: 截图前的等待时间（秒）
         """
         try:
+            if wait:
+                time.sleep(wait)  # 等待指定的秒数
+
             # 确保目录存在
             screenshots_dir = os.path.join(root_path(), 'datas', 'screenshots')
             os.makedirs(screenshots_dir, exist_ok=True)
@@ -612,20 +616,24 @@ class BaseUtil:
             self.take_screenshot("page_source_error")
             raise
 
-    def tap(self, x: int, y: int, duration: int = 100) -> None:
+    def tap(self, positions: List[Tuple[int, int]], duration: Optional[int] = None) -> Self:
         """
         点击屏幕上的指定坐标
 
-        :param x: X坐标
-        :param y: Y坐标
-        :param duration: 持续时间（毫秒）
+        :param positions: 一个包含 x/y 坐标的元组数组，长度最多为 5
+        :param duration: 单次点击持续时间（毫秒）
+        :return: Self instance
         """
+        if len(positions) > 5:
+            raise ValueError("positions 数组的长度不能超过 5")
+
         try:
-            self._driver.tap([(x, y)], duration)
-            INFO.logger.info(f"成功点击坐标: ({x}, {y}) 持续时间: {duration}ms")
+            self._driver.tap(positions, duration)
+            INFO.logger.info(f"成功点击坐标: {positions} 持续时间: {duration}ms")
         except WebDriverException as e:
-            ERROR.logger.error(f"点击坐标失败: ({x}, {y}), 错误信息: {e}")
+            ERROR.logger.error(f"点击坐标失败: {positions}, 错误信息: {e}")
             raise
+        return self
 
     def drag_and_drop(self, start_element: WebElement, end_element: WebElement, pause: Optional[float] = None) -> Self:
         """
@@ -633,8 +641,8 @@ class BaseUtil:
 
         :param start_element: 起始元素
         :param end_element: 结束元素
-        :param pause: 暂停时间（ms）
-        :return: Union['WebDriver', 'ActionHelpers']: Self instance
+        :param pause: 暂停时间（秒）
+        :return: Self instance
         """
         try:
             self._driver.drag_and_drop(start_element, end_element, pause)
@@ -642,24 +650,25 @@ class BaseUtil:
         except WebDriverException as e:
             ERROR.logger.error(f"拖拽元素失败: 从 {start_element} 到 {end_element}, 错误信息: {e}")
             raise
+        return self
 
-    def scroll(self, start_x: int, start_y: int, end_x: int, end_y: int) -> None:
+    def scroll(self, start_element: WebElement, end_element: WebElement, duration: Optional[int] = None) -> Self:
         """
         滚动屏幕
 
-        :param start_x: 起始X坐标
-        :param start_y: 起始Y坐标
-        :param end_x: 结束X坐标
-        :param end_y: 结束Y坐标
+        :param start_element: 起始元素
+        :param end_element: 结束元素
+        :param duration: 持续时间（毫秒）
         """
         try:
-            self._driver.scroll(start_x, start_y, end_x, end_y)
-            INFO.logger.info(f"成功滚动屏幕从 ({start_x}, {start_y}) 到 ({end_x}, {end_y})")
+            self._driver.scroll(start_element, end_element, duration)
+            INFO.logger.info(f"成功滚动屏幕从 {start_element} 到 {end_element}")
         except WebDriverException as e:
-            ERROR.logger.error(f"滚动屏幕失败: 从 ({start_x}, {start_y}) 到 ({end_x}, {end_y}), 错误���息: {e}")
+            ERROR.logger.error(f"滚动屏幕失败: 从 {start_element} 到 {end_element}, 错误信息: {e}")
             raise
+        return self
 
-    def swipe(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: int = 1000) -> None:
+    def swipe(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: int = None) -> Self:
         """
         滑动屏幕
 
@@ -675,3 +684,4 @@ class BaseUtil:
         except WebDriverException as e:
             ERROR.logger.error(f"滑动屏幕失败: 从 ({start_x}, {start_y}) 到 ({end_x}, {end_y}), 错误信息: {e}")
             raise
+        return self

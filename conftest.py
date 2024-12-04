@@ -72,7 +72,6 @@ driver_manager = DriverManager()
 
 @pytest.fixture(scope='session')
 def web_driver():
-    """Web端测试driver配置"""
     driver = None
     try:
         driver_path = driver_manager.get_driver_path('web')
@@ -103,7 +102,6 @@ def web_driver():
 
 @pytest.fixture(scope='session')
 def app_driver():
-    """App端测试driver配置"""
     driver = None
     try:
         driver_path = driver_manager.get_driver_path('app', "95.0.4638.10")
@@ -136,4 +134,3 @@ def app_driver():
         if driver is not None:
             driver.quit()
             print("\nApp相关测试已执行完毕, 具体详情请查看Allure报告!")
-            print(2)

@@ -25,10 +25,10 @@ class TestAppLogin(BaseCaseApp):
             self.login()
             print(self.current_package)
             print(self.current_activity)
-            self.take_screenshot("after_login")
-            self.open_notify()
 
-            ActionChains(self.driver).w3c_actions.pointer_action.click_and_hold()
+            self.open_notify()
+            self.take_screenshot("after_login")
+            # ActionChains(self.driver).w3c_actions.pointer_action.click_and_hold().perform()
 
         except Exception as e:
             ERROR.logger.error(f"测试执行失败: {str(e)}")
