@@ -13,7 +13,7 @@ class TestWebLogin(BaseCaseWeb):
         try:
             INFO.logger.info("开始执行 test_web_login 测试")
             self.login()
-            self.take_screenshot("after_login")
+            self.take_screenshot("after_login", 0.2)
             current = self.current_url
             handle = self.current_window_handle
             print(f"当前URL: {current}")

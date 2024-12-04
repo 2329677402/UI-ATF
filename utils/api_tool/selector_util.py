@@ -3,12 +3,12 @@
 """
 @ Date        : 2024/12/2 下午9:42
 @ Author      : Poco Ray
-@ File        : base_util.py
+@ File        : selector_util.py
 @ Description : 选择器工具类，用于处理和转换各种类型的选择器
 """
+import re
 from typing import Tuple
 from selenium.webdriver.common.by import By
-import re
 
 
 class SelectorUtil:
