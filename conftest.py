@@ -136,3 +136,4 @@ def app_driver():
         if driver is not None:
             driver.quit()
             print("\nApp相关测试已执行完毕, 具体详情请查看Allure报告!")
+            print(2)
