@@ -35,8 +35,8 @@ class TestAppLogin(BaseCaseApp):
             # ActionChains(self.driver).w3c_actions.pointer_action.click_and_hold().perform()
             username = self.find_element('//*[@text="请输入账号"]', by='xpath')
             password = self.find_element("//*[@text='请输入密码']", by='xpath')
-            # username.send_keys("admin")
-            # password.send_keys("yl123456")
+            username.send_keys("admin")
+            password.send_keys("yl123456")
             self.click("//*[@text='登录']", by='xpath')
             self.sleep(3)
 

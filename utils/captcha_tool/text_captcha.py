@@ -7,6 +7,8 @@
 @ Description : 文本验证码, 处理包含扭曲、模糊、叠加背景或噪点的文字.
 @ Solution    : 1. 图像处理与OCR（光学字符识别）: 使用高级的OCR技术，可以识别一些扭曲的文字. 不过，现代的验证码往往会使用更复杂的变形，使OCR变得困难.
                     技术栈：Python + OpenCV + Tesseract OCR + pytesseract.
+                    Tesseract OCR下载地址: https://github.com/UB-Mannheim/tesseract/wiki
+                    中文训练数据集下载地址: https://github.com/tesseract-ocr/tesseract/wiki/Data-Files
 
                 2. 机器学习与深度学习: 训练模型来识别特定类型验证码的模式.
                     技术栈：Python + TensorFlow/Keras/PyTorch + Convolutional Neural Networks (CNNs).
