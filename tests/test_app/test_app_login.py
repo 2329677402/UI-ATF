@@ -23,12 +23,22 @@ class TestAppLogin(BaseCaseApp):
         try:
             INFO.logger.info("开始执行 test_app_login 测试")
             self.login()
+            self.close_app("com.android.browser")
+            self.start_app("com.tongjiwisdom")
+            self.sleep(3)
             print(self.current_package)
             print(self.current_activity)
 
-            self.open_notify()
-            self.take_screenshot("after_login")
+            contexts = self.driver.contexts
+            print(contexts)
+            self.switch_to_context(contexts[-1])
             # ActionChains(self.driver).w3c_actions.pointer_action.click_and_hold().perform()
+            username = self.find_element('//*[@text="请输入账号"]', by='xpath')
+            password = self.find_element("//*[@text='请输入密码']", by='xpath')
+            # username.send_keys("admin")
+            # password.send_keys("yl123456")
+            self.click("//*[@text='登录']", by='xpath')
+            self.sleep(3)
 
         except Exception as e:
             ERROR.logger.error(f"测试执行失败: {str(e)}")

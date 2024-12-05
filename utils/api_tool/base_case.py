@@ -47,21 +47,29 @@ class BaseCase:
             self._clean_screenshots()
         if self._settings.global_config.get('clean_logs', True):
             self._clean_logs()
+        if self._settings.global_config.get('clean_downloads', True):
+            self._clean_downloads()
 
-    @staticmethod
-    def _clean_screenshots():
-        """清理历史截图"""
-        screenshots_path = os.path.join(root_path(), 'datas', 'screenshots')
+    def _clean_screenshots(self):
+        """清理截图文件"""
+        screenshots_path = self._settings.global_config['screenshots_dir']
         if os.path.exists(screenshots_path):
             shutil.rmtree(screenshots_path)
         os.makedirs(screenshots_path, exist_ok=True)
-        INFO.logger.info("历史截图清理完成")
+        INFO.logger.info("截图记录清理完成")
 
-    @staticmethod
-    def _clean_logs():
+    def _clean_downloads(self):
+        """清理下载文件"""
+        downloads_path = self._settings.global_config['downloads_dir']
+        if os.path.exists(downloads_path):
+            shutil.rmtree(downloads_path)
+        os.makedirs(downloads_path, exist_ok=True)
+        INFO.logger.info("下载记录清理完成")
+
+    def _clean_logs(self):
         """清理历史日志"""
         try:
-            logs_path = os.path.join(root_path(), 'logs')
+            logs_path = self._settings.global_config['logs_dir']
             if not os.path.exists(logs_path):
                 os.makedirs(logs_path)
                 return

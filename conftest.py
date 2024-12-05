@@ -107,6 +107,8 @@ def app_driver():
         driver_path = driver_manager.get_driver_path('app', "95.0.4638.10")
         print(f"\n当前使用的AppDriver驱动路径: {driver_path}")
 
+        # 获取包名appPackage和活动名appActivity:
+        # adb shell dumpsys window | findstr mCurrentFocus
         options = AppiumOptions()
         options.load_capabilities({
             "appium:appPackage": "com.android.browser",

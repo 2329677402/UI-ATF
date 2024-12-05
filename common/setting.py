@@ -57,11 +57,17 @@ class Settings:
             'implicit_timeout': 10,  # 隐式等待时间（秒）
             'page_load_timeout': 30,  # 页面加载超时时间（秒）
 
+            # 下载文件相关配置
+            'downloads_dir': ensure_path_sep('\\datas\\downloads'),  # 下载文件目录
+            'clean_downloads': True,  # 是否清理历史下载文件
+
             # 截图相关配置
+            'screenshots_dir': ensure_path_sep('\\datas\\screenshots'),  # 截图目录
             'clean_screenshots': True,  # 是否清理历史截图
             'screenshot_format': 'png',  # 截图格式
 
             # 日志相关配置
+            'logs_dir': ensure_path_sep('\\logs'),  # 日志目录
             'clean_logs': True,  # 是否清理历史日志
             'log_level': 'INFO',  # 日志级别
             'log_format': '%(asctime)s [%(levelname)s] %(message)s',  # 日志格式
