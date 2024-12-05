@@ -19,3 +19,7 @@
                 4. 手动输入或人机交互: 使用自动化工具截取验证码图片并显示给用户, 用户手动输入识别结果，程序继续执行.
                     技术栈：Python + pyautogui.
 """
+
+
+class TextCaptcha:
+    pass

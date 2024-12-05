@@ -6,9 +6,11 @@
 @ File        : base_case.py
 @ Description : 测试基类
 """
+import base64
 import os
 import time
 import shutil
+import requests
 from datetime import datetime
 from common.setting import root_path, Settings
 from utils.log_tool.log_control import INFO, ERROR
@@ -29,6 +31,8 @@ class BaseCase:
     _wait: Optional[WebDriverWait] = None  # 等待对象
     _timeout: int = _settings.global_config['webdriver_timeout']  # 超时时间
     _poll_frequency: float = _settings.global_config['webdriver_poll_frequency']  # 轮询频率
+    screenshots_path = _settings.global_config['screenshots_dir']
+    downloads_path = _settings.global_config['downloads_dir']
 
     def setup_actions(self):
         """初始化测试环境"""
@@ -52,18 +56,17 @@ class BaseCase:
 
     def _clean_screenshots(self):
         """清理截图文件"""
-        screenshots_path = self._settings.global_config['screenshots_dir']
-        if os.path.exists(screenshots_path):
-            shutil.rmtree(screenshots_path)
-        os.makedirs(screenshots_path, exist_ok=True)
+        if os.path.exists(self.screenshots_path):
+            shutil.rmtree(self.screenshots_path)
+        os.makedirs(self.screenshots_path, exist_ok=True)
         INFO.logger.info("截图记录清理完成")
 
     def _clean_downloads(self):
         """清理下载文件"""
-        downloads_path = self._settings.global_config['downloads_dir']
-        if os.path.exists(downloads_path):
-            shutil.rmtree(downloads_path)
-        os.makedirs(downloads_path, exist_ok=True)
+
+        if os.path.exists(self.downloads_path):
+            shutil.rmtree(self.downloads_path)
+        os.makedirs(self.downloads_path, exist_ok=True)
         INFO.logger.info("下载记录清理完成")
 
     def _clean_logs(self):
@@ -643,6 +646,55 @@ class BaseCase:
             self.send_keys("#input_field", "example text")
         """
         pass
+
+    def download_image(self, element: WebElement, save_name: str, save_path: Optional[str] = None) -> Union[str, None]:
+        """
+        下载网页图片
+
+        :param element: WebElement 元素
+        :param save_name: 保存的文件名
+        :param save_path: 保存的路径，默认为 downloads_path
+        :return: 完整路径
+        :Usage:
+            img_el = self.find_element("img")
+            image_path = self.download_image(img_el, "captcha.png")
+            print(image_path)
+        """
+        try:
+            if save_path is None:
+                save_path = self.downloads_path
+
+            os.makedirs(save_path, exist_ok=True)
+
+            # 获取图片的 src 属性
+            image_src = element.get_attribute("src")
+
+            if image_src.startswith("data:image"):
+                # 处理 base64 编码的图片
+                header, encoded = image_src.split(",", 1)
+                image_data = base64.b64decode(encoded)
+                file_path = os.path.join(save_path, f"{save_name}")
+                with open(file_path, "wb") as file:
+                    file.write(image_data)
+                INFO.logger.info(f"图片下载成功: {file_path}")
+            else:
+                # 处理普通 URL 的图片
+                response = requests.get(image_src, stream=True)
+                if response.status_code == 200:
+                    file_path = os.path.join(save_path, f"{save_name}")
+                    with open(file_path, 'wb') as file:
+                        for chunk in response.iter_content(1024):
+                            file.write(chunk)
+                    INFO.logger.info(f"图片下载成功: {file_path}")
+                else:
+                    ERROR.logger.error(f"图片下载失败，状态码: {response.status_code}")
+                    file_path = None
+
+            return file_path
+
+        except Exception as e:
+            ERROR.logger.error(f"下载图片时发生错误: {str(e)}")
+            return None
 
     def refresh(self) -> None:
         """

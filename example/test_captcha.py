@@ -15,3 +15,6 @@ class TestExample(BaseCaseWeb):
     def test_click_captcha(self):
         """测试文本验证码"""
         self.open("https://captcha.ruijie.com.cn/")
+        img_el = self.find_element("img")
+        image_path = self.download_image(img_el, "captcha.png")
+        print(image_path)
