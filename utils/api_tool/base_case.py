@@ -676,7 +676,7 @@ class BaseCase:
                 file_path = os.path.join(save_path, f"{save_name}")
                 with open(file_path, "wb") as file:
                     file.write(image_data)
-                INFO.logger.info(f"图片下载成功: {file_path}")
+                INFO.logger.info(f"网络图片下载成功: {file_path}")
             else:
                 # 处理普通 URL 的图片
                 response = requests.get(image_src, stream=True)
@@ -685,9 +685,9 @@ class BaseCase:
                     with open(file_path, 'wb') as file:
                         for chunk in response.iter_content(1024):
                             file.write(chunk)
-                    INFO.logger.info(f"图片下载成功: {file_path}")
+                    INFO.logger.info(f"网络图片下载成功: {file_path}")
                 else:
-                    ERROR.logger.error(f"图片下载失败，状态码: {response.status_code}")
+                    ERROR.logger.error(f"网络图片下载失败，状态码: {response.status_code}")
                     file_path = None
 
             return file_path
