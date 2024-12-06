@@ -33,6 +33,7 @@ class BaseCase:
     _poll_frequency: float = _settings.global_config['webdriver_poll_frequency']  # 轮询频率
     screenshots_path = _settings.global_config['screenshots_dir']
     downloads_path = _settings.global_config['downloads_dir']
+    logs_path = _settings.global_config['logs_dir']
 
     def setup_actions(self):
         """初始化测试环境"""
@@ -72,17 +73,17 @@ class BaseCase:
     def _clean_logs(self):
         """清理历史日志"""
         try:
-            logs_path = self._settings.global_config['logs_dir']
-            if not os.path.exists(logs_path):
-                os.makedirs(logs_path)
+
+            if not os.path.exists(self.logs_path):
+                os.makedirs(self.logs_path)
                 return
 
             today = datetime.now().date()
-            for filename in os.listdir(logs_path):
+            for filename in os.listdir(self.logs_path):
                 if not filename.endswith('.log'):
                     continue
 
-                file_path = os.path.join(logs_path, filename)
+                file_path = os.path.join(self.logs_path, filename)
                 try:
                     # 从文件名中提取日期（格式：xxx-2024-01-01.log）
                     date_str = filename.split('-', 1)[1].split('.')[0]
@@ -101,19 +102,22 @@ class BaseCase:
         except Exception as e:
             ERROR.logger.error(f"清理日志目录时发生错误: {str(e)}")
 
-    def take_screenshot(self, name: str, wait: Optional[float] = None) -> Union[str, None]:
+    def take_screenshot(self, name: str) -> Union[str, None]:
         """
         截取屏幕截图
 
         :param name: 截图名称
-        :param wait: 截图前的等待时间（秒）
         :return: 截图文件路径
         :Usage:
-            self.take_screenshot("screenshot_name", 0.2)
+            self.take_screenshot("screenshot_name")
         """
         try:
-            if wait:
-                time.sleep(wait)  # 等待指定的秒数
+            # 等待页面加载完毕
+            # document.readyState: 一个表示文档加载状态的属性，它有以下几种可能的值：
+            # "loading": 文档仍在加载中.
+            # "interactive": 文档已完成加载，文档已被解析，但诸如图像、样式表和框架之类的子资源仍在加载中.
+            # "complete": 文档和所有子资源已完全加载.
+            self._wait.until(lambda driver: driver.execute_script("return document.readyState") == "complete")
 
             # 确保目录存在
             screenshots_dir = os.path.join(root_path(), 'datas', 'screenshots')
@@ -158,76 +162,93 @@ class BaseCase:
             self.take_screenshot("open_url_unknown_exception")
             raise
 
-    def click(self, selector: str, by: str = 'css_selector', delay: int = 0) -> None:
+    def click(self, selector: str = None, by: str = 'css_selector', delay: int = 0,
+              pos: Tuple[int, int] = None) -> None:
         """
-        点击元素
+        点击元素或指定坐标
 
         :param selector: 元素选择器
         :param by: 定位方式，默认为'css_selector'
         :param delay: 点击前的延迟时间，默认为0秒
+        :param pos: 坐标位置 (x, y)，默认为None
         :Usage:
             self.click("#submit_button")
+            self.click(pos=(100, 200))
         """
-        max_attempts = 3  # 最大重试次数
-        attempt = 0
-        last_exception = None
-
-        while attempt < max_attempts:
+        if pos:
             try:
-                # 等待任何可能的Ajax请求完成
-                script = (
-                    "return (typeof jQuery !== 'undefined') ? "
-                    "jQuery.active == 0 : true"
-                )
-                self.driver.execute_script(script)
-
-                locator = SelectorUtil.get_selenium_locator(selector, by)
-
-                # 等待元素存在、可见并可点击
-                self._wait.until(EC.presence_of_element_located(locator))
-                self._wait.until(EC.visibility_of_element_located(locator))
-                element = self._wait.until(EC.element_to_be_clickable(locator))
-
-                # 使用JavaScript滚动到元素位置，不使用smooth效果
-                self.driver.execute_script(
-                    "arguments[0].scrollIntoView(true);",
-                    element
-                )
-
                 if delay > 0:
                     time.sleep(delay)  # 仅在明确要求时等待
 
-                # 尝试点击
-                try:
-                    element.click()
-                except ElementClickInterceptedException:
-                    # 如果普通点击失败，尝试JavaScript点击
-                    self.driver.execute_script("arguments[0].click();", element)
-
-                INFO.logger.info(f"成功点击元素: {selector} (by={by})")
-                return
-
-            except TimeoutException as e:
-                last_exception = e
-                attempt += 1
-                continue
+                # 使用JavaScript点击指定坐标
+                self.driver.execute_script(f"window.scrollTo({pos[0]}, {pos[1]});")
+                self.driver.execute_script(f"document.elementFromPoint({pos[0]}, {pos[1]}).click();")
+                INFO.logger.info(f"成功点击坐标: {pos}")
             except Exception as e:
-                last_exception = e
-                attempt += 1
-                continue
+                ERROR.logger.error(f"点击坐标失败: {pos}, 错误信息: {e}")
+                self.take_screenshot("click_pos_error")
+                raise
+        else:
+            max_attempts = 3  # 最大重试次数
+            attempt = 0
+            last_exception = None
 
-        # 如果所有重试都失败了
-        ERROR.logger.error(f"点击元素失败(重试{max_attempts}次后): {selector} (by={by})")
-        self.take_screenshot("click_error")
+            while attempt < max_attempts:
+                try:
+                    # 等待任何可能的Ajax请求完成
+                    script = (
+                        "return (typeof jQuery !== 'undefined') ? "
+                        "jQuery.active == 0 : true"
+                    )
+                    self.driver.execute_script(script)
 
-        # 记录页面源码以便调试
-        try:
-            page_source = self.driver.page_source
-            ERROR.logger.error(f"页面源码: {page_source}")
-        except Exception as e:
-            ERROR.logger.error(f"获取页面源码失败: {str(e)}")
+                    locator = SelectorUtil.get_selenium_locator(selector, by)
 
-        raise last_exception
+                    # 等待元素存在、可见并可点击
+                    self._wait.until(EC.presence_of_element_located(locator))
+                    self._wait.until(EC.visibility_of_element_located(locator))
+                    element = self._wait.until(EC.element_to_be_clickable(locator))
+
+                    # 使用JavaScript滚动到元素位置，不使用smooth效果
+                    self.driver.execute_script(
+                        "arguments[0].scrollIntoView(true);",
+                        element
+                    )
+
+                    if delay > 0:
+                        time.sleep(delay)  # 仅在明确要求时等待
+
+                    # 尝试点击
+                    try:
+                        element.click()
+                    except ElementClickInterceptedException:
+                        # 如果普通点击失败，尝试JavaScript点击
+                        self.driver.execute_script("arguments[0].click();", element)
+
+                    INFO.logger.info(f"成功点击元素: {selector} (by={by})")
+                    return
+
+                except TimeoutException as e:
+                    last_exception = e
+                    attempt += 1
+                    continue
+                except Exception as e:
+                    last_exception = e
+                    attempt += 1
+                    continue
+
+            # 如果所有重试都失败了
+            ERROR.logger.error(f"点击元素失败(重试{max_attempts}次后): {selector} (by={by})")
+            self.take_screenshot("click_error")
+
+            # 记录页面源码以便调试
+            try:
+                page_source = self.driver.page_source
+                ERROR.logger.error(f"页面源码: {page_source}")
+            except Exception as e:
+                ERROR.logger.error(f"获取页面源码失败: {str(e)}")
+
+            raise last_exception
 
     def type(self, selector: str, text: str, by: str = 'css_selector', timeout: int = None,
              retry: bool = False) -> None:
@@ -666,6 +687,9 @@ class BaseCase:
 
             os.makedirs(save_path, exist_ok=True)
 
+            # 等待图片元素完全加载
+            self._wait.until(EC.visibility_of(element))
+
             # 获取图片的 src 属性
             image_src = element.get_attribute("src")
 
@@ -695,6 +719,25 @@ class BaseCase:
         except Exception as e:
             ERROR.logger.error(f"下载图片时发生错误: {str(e)}")
             return None
+
+    def get_element_attribute(self, element: WebElement, attribute: str) -> str:
+        """
+        获取元素的属性值
+
+        :param element: WebElement 元素
+        :param attribute: 要获取的属性名称
+        :return: 属性值
+        :Usage:
+            value = self.get_element_attribute(element, "src")
+        """
+        try:
+            attribute_value = element.get_attribute(attribute)
+            INFO.logger.info(f"成功获取元素属性: {attribute} = {attribute_value}")
+            return attribute_value
+        except Exception as e:
+            ERROR.logger.error(f"获取元素属性时发生错误: {str(e)}")
+            self.take_screenshot("get_element_attribute_error")
+            raise
 
     def refresh(self) -> None:
         """
