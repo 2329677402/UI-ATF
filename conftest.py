@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-@ Date        : 2024/12/2 下午11:41
-@ Author      : Poco Ray
+@ Date        : 12/09/2024 5:36 PM
+@ Author      : Administrator
 @ File        : conftest.py
-@ Description : Pytest配置文件
+@ Description : Test fixture configuration file.
 """
 import os
 import time
@@ -18,8 +18,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 class DriverManager:
-    """驱动管理器类"""
-
     def __init__(self):
         self.driver_path = os.path.join(root_path(), 'drivers')
         if not os.path.exists(self.driver_path):
@@ -27,46 +25,47 @@ class DriverManager:
 
     def get_driver_path(self, driver_type: str, version: str = None) -> str:
         """
-        获取driver路径，如果本地不存在则下载
-        :param driver_type: 驱动类型 ('web' 或 'app')
-        :param version: ChromeDriver版本号（可选）
-        :return: driver路径
+        Get the driver path. If the driver does not exist, download it.
+
+        :param driver_type: Driver type, 'web' or 'app'.
+        :param version: Driver version.
+        :return: Driver path.
         """
         if driver_type not in ['web', 'app']:
-            raise ValueError("driver_type必须是“web”或“app”")
+            raise ValueError("Invalid driver type, must be 'web' or 'app'.")
 
-        # 确定目标driver路径
+        # Define the target driver path.
         target_filename = f'chromedriver_{driver_type}.exe'
         target_path = os.path.join(self.driver_path, target_filename)
 
-        # 如果目标driver已存在，直接返回路径
+        # If the driver exists, return the path.
         if os.path.exists(target_path):
             return target_path
+        else:
+            print(f"Start downloading the {driver_type} driver, please wait...")
 
-        # 如果不存在，则下载新的driver
-        print(f"开始下载 {driver_type} driver, 请稍候...")
         try:
-            # 根据类型选择ChromeDriver版本
+            # Initialize the driver manager.
             chrome_driver = (ChromeDriverManager() if driver_type == 'web'
                              else ChromeDriverManager(driver_version=version or "95.0.4638.10"))
 
-            # 下载ChromeDriver
+            # Download the chromedriver.
             source_path = chrome_driver.install()
-            print(f"驱动下载完成: {source_path}")
+            print(f"Downloaded the {driver_type} driver to: {source_path}.")
 
-            # 复制到目标位置
+            # Copy the driver to the target path.
             import shutil
             shutil.copy2(source_path, target_path)
-            print(f"已将Driver驱动复制到目标路径: {target_path}")
+            print(f"Copy the {driver_type} driver to: {target_path}.")
 
             return target_path
 
         except Exception as e:
-            print(f"{driver_type} driver 下载失败: {str(e)}")
+            print(f"Failed to download the {driver_type} driver: {str(e)}")
             raise
 
 
-# 创建驱动管理器实例
+# Initialize DriverManager class.
 driver_manager = DriverManager()
 
 
@@ -75,7 +74,7 @@ def web_driver():
     driver = None
     try:
         driver_path = driver_manager.get_driver_path('web')
-        print(f"\n当前使用的WebDriver驱动路径: {driver_path}")
+        print(f"\nCurrently using the WebDriver driver path: {driver_path}.")
 
         service = Service(executable_path=driver_path)
         options = WebDriver.ChromeOptions()
@@ -87,17 +86,17 @@ def web_driver():
         options.add_argument('--log-level=3')
 
         driver = WebDriver.Chrome(service=service, options=options)
-        print("开始初始化WebDriver对象, 请稍候...")
-        print("初始化完成, 开始执行测试用例...")
+        print("Start initializing the WebDriver object, please wait...")
+        print("Initialization completed, start executing test cases...")
         time.sleep(0.5)
         yield driver
     except Exception as e:
-        print(f"WebDriver 初始化失败: {str(e)}")
+        print(f"WebDriver initialization failed: {str(e)}")
         raise
     finally:
         if driver is not None:
             driver.quit()
-            print("\nWeb相关测试已执行完毕, 具体详情请查看Allure报告!")
+            print("\nWeb-related tests have been completed, please check the Allure report for details!")
 
 
 @pytest.fixture(scope='session')
@@ -105,9 +104,9 @@ def app_driver():
     driver = None
     try:
         driver_path = driver_manager.get_driver_path('app', "95.0.4638.10")
-        print(f"\n当前使用的AppDriver驱动路径: {driver_path}")
+        print(f"\nCurrently using the AppDriver driver path: {driver_path}.")
 
-        # 获取包名appPackage和活动名appActivity:
+        # Get the current appPackage and appActivity of the Android device:
         # adb shell dumpsys window | findstr mCurrentFocus
         options = AppiumOptions()
         options.load_capabilities({
@@ -125,14 +124,14 @@ def app_driver():
         })
 
         driver = AppDriver.Remote("http://127.0.0.1:4723", options=options)
-        print("开始初始化AppDriver对象, 请稍候...")
-        print("初始化完成, 开始执行测试用例...")
+        print("Start initializing the AppDriver object, please wait...")
+        print("Initialization completed, start executing test cases...")
         time.sleep(0.5)
         yield driver
     except Exception as e:
-        print(f"AppDriver 初始化失败: {str(e)}")
+        print(f"AppDriver initialization failed: {str(e)}")
         raise
     finally:
         if driver is not None:
             driver.quit()
-            print("\nApp相关测试已执行完毕, 具体详情请查看Allure报告!")
+            print("\nApp-related tests have been completed, please check the Allure report for details!")

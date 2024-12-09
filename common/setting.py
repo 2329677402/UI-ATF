@@ -4,7 +4,7 @@
 @ Date        : 2024/11/16 下午3:40
 @ Author      : Poco Ray
 @ File        : setting.py
-@ Description : 实现不同操作系统的路径分离, 以兼容 Windows 和 Linux 不同环境的操作系统路径.
+@ Description : Global configuration parameters for the project.
 """
 import os
 from typing import Text, Dict, Any
@@ -12,7 +12,7 @@ from typing import Text, Dict, Any
 
 def root_path() -> str:
     """
-    :return: 项目根路径
+    :return: Project root path.
     """
     path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return path
@@ -20,9 +20,10 @@ def root_path() -> str:
 
 def ensure_path_sep(path: Text) -> Text:
     """
-    功能: 实现不同操作系统的路径分离, 以兼容 Windows 和 Linux 不同环境的操作系统路径.
-    :param path: path路径(任意一种操作系统路径的格式都可以).
-    :return: 视操作系统返回不同的路径, 路径分隔符自动转换为当前操作系统的路径分隔符.
+    Ensure that the path separator is consistent with the current operating system.
+
+    :param path: Path string.
+    :return: Path string with consistent separator.
     """
     if "/" in path:
         path = os.sep.join(path.split("/"))
@@ -34,11 +35,11 @@ def ensure_path_sep(path: Text) -> Text:
 
 
 class Settings:
-    """项目配置类"""
+    """ Global Configuration Class """
 
     @property
     def project_paths(self) -> Dict[str, str]:
-        """项目相关路径"""
+        """ Project paths """
         return {
             'root': root_path(),
             'datas': ensure_path_sep('/datas'),
@@ -49,31 +50,31 @@ class Settings:
 
     @property
     def global_config(self) -> Dict[str, Any]:
-        """全局配置参数"""
+        """ Project parameters """
         return {
-            # WebDriver相关配置
-            'webdriver_timeout': 10,  # WebDriver超时时间（秒）
-            'webdriver_poll_frequency': 0.5,  # 轮询频率（秒）
-            'implicit_timeout': 10,  # 隐式等待时间（秒）
-            'page_load_timeout': 30,  # 页面加载超时时间（秒）
+            # WebDriver related configuration
+            'webdriver_timeout': 10,  # WebDriver timeout (seconds)
+            'webdriver_poll_frequency': 0.5,  # Polling frequency (seconds)
+            'implicit_timeout': 10,  # Implicit wait time (seconds)
+            'page_load_timeout': 30,  # Page load timeout (seconds)
 
-            # 下载文件相关配置
+            # Download related configuration
             'downloads_dir': ensure_path_sep('\\datas\\downloads'),  # 下载文件目录
             'clean_downloads': True,  # 是否清理历史下载文件
 
-            # 截图相关配置
+            # Screenshot related configuration
             'screenshots_dir': ensure_path_sep('\\datas\\screenshots'),  # 截图目录
             'clean_screenshots': True,  # 是否清理历史截图
             'screenshot_format': 'png',  # 截图格式
 
-            # 日志相关配置
+            # Log related configuration
             'logs_dir': ensure_path_sep('\\logs'),  # 日志目录
             'clean_logs': True,  # 是否清理历史日志
             'log_level': 'INFO',  # 日志级别
             'log_format': '%(asctime)s [%(levelname)s] %(message)s',  # 日志格式
             'log_date_format': '%Y-%m-%d %H:%M:%S',  # 日志日期格式
 
-            # 报告相关配置
+            # Report related configuration
             'report_dir_name': 'reports',  # 报告目录名称
             'report_format': 'html',  # 报告格式
             'report_title': 'UI自动化测试报告',  # 报告标题

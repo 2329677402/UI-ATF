@@ -11,6 +11,7 @@ from utils.notify_tool.send_mail import SendEmail
 from utils.notify_tool.send_lark import FeiShuTalkChatBot
 from utils import config
 
+
 def run():
     try:
         # 打印项目信息
@@ -77,6 +78,7 @@ def run():
         except Exception as mail_error:
             ERROR.logger.error(f"发送错误邮件失败: {str(mail_error)}")
         raise
+
 
 if __name__ == '__main__':
     run()

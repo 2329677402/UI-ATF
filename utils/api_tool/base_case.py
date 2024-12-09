@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-@ Date        : 2024/12/4 下午8:40
+@ Date        : 12/9/2024 3:23 PM
 @ Author      : Poco Ray
 @ File        : base_case.py
-@ Description : 测试基类
+@ Description : Test case base class.
 """
+
 import base64
 import os
 import time
@@ -25,29 +26,29 @@ from typing import Any, List, Optional, Self, Tuple, ClassVar, Union
 
 
 class BaseCase:
-    """ 类变量声明 """
-    driver: WebDriver or AppDriver = None  # 测试驱动对象
-    _settings: ClassVar[Settings] = Settings()  # 全局配置对象
-    _wait: Optional[WebDriverWait] = None  # 等待对象
-    _timeout: int = _settings.global_config['webdriver_timeout']  # 超时时间
-    _poll_frequency: float = _settings.global_config['webdriver_poll_frequency']  # 轮询频率
+    """ Class variable declaration. """
+    driver: WebDriver or AppDriver = None  # Test driver object.
+    _settings: ClassVar[Settings] = Settings()  # Global Configuration Object.
+    _wait: Optional[WebDriverWait] = None  # Wait object.
+    _timeout: int = _settings.global_config['webdriver_timeout']
+    _poll_frequency: float = _settings.global_config['webdriver_poll_frequency']
     screenshots_path = _settings.global_config['screenshots_dir']
     downloads_path = _settings.global_config['downloads_dir']
     logs_path = _settings.global_config['logs_dir']
 
     def setup_actions(self):
-        """初始化测试环境"""
+        """ Initialize the test environment. """
         if not hasattr(self, 'driver') or self.driver is None:
             raise ValueError("The driver object is not initialized!")
 
-        # 初始化等待对象
+        # Initialize the wait object.
         self._wait = WebDriverWait(
             self.driver,
             self._timeout,
             poll_frequency=self._poll_frequency
         )
 
-        # 清理历史数据
+        # Clean up historical data.
         if self._settings.global_config.get('clean_screenshots', True):
             self._clean_screenshots()
         if self._settings.global_config.get('clean_logs', True):
@@ -56,22 +57,22 @@ class BaseCase:
             self._clean_downloads()
 
     def _clean_screenshots(self):
-        """清理截图文件"""
+        """ Clean up the screenshot file. """
         if os.path.exists(self.screenshots_path):
             shutil.rmtree(self.screenshots_path)
         os.makedirs(self.screenshots_path, exist_ok=True)
-        INFO.logger.info("截图记录清理完成")
+        INFO.logger.info("Screenshot files cleanup completed.")
 
     def _clean_downloads(self):
-        """清理下载文件"""
+        """ Clean up the download file. """
 
         if os.path.exists(self.downloads_path):
             shutil.rmtree(self.downloads_path)
         os.makedirs(self.downloads_path, exist_ok=True)
-        INFO.logger.info("下载记录清理完成")
+        INFO.logger.info("Download files cleanup completed.")
 
     def _clean_logs(self):
-        """清理历史日志"""
+        """ Clean up the log file. """
         try:
 
             if not os.path.exists(self.logs_path):
@@ -85,92 +86,92 @@ class BaseCase:
 
                 file_path = os.path.join(self.logs_path, filename)
                 try:
-                    # 从文件名中提取日期（格式：xxx-2024-01-01.log）
+                    # Extract the date from the file name.（e.g.: xxx-2024-01-01.log）
                     date_str = filename.split('-', 1)[1].split('.')[0]
                     file_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-                    # 如果不是今天的日志，则删除
+                    # If file_date's not today's log, delete it.
                     if file_date < today:
                         os.remove(file_path)
-                        INFO.logger.info(f"已删除历史日志文件: {filename}")
+                        INFO.logger.info(f"Deleted history log file: {filename}.")
                 except (ValueError, IndexError):
                     continue
                 except Exception as e:
-                    ERROR.logger.error(f"清理日志文件时发生错误: {str(e)}")
+                    ERROR.logger.error(f"Error occurred while cleaning log file: {str(e)}")
 
-            INFO.logger.info("历史日志清理完成")
+            INFO.logger.info("Log files cleanup completed.")
         except Exception as e:
-            ERROR.logger.error(f"清理日志目录时发生错误: {str(e)}")
+            ERROR.logger.error(f"Error occurred while cleaning log directory: {str(e)}")
 
     def take_screenshot(self, name: str) -> Union[str, None]:
         """
-        截取屏幕截图
+        Take a screenshot of the current screen.
 
-        :param name: 截图名称
-        :return: 截图文件路径
+        :param name: Screenshot file name. The current date will be automatically added after the file name is saved.
+        :return: Screenshot file path.
         :Usage:
             self.take_screenshot("screenshot_name")
         """
         try:
-            # 等待页面加载完毕
-            # document.readyState: 一个表示文档加载状态的属性，它有以下几种可能的值：
-            # "loading": 文档仍在加载中.
-            # "interactive": 文档已完成加载，文档已被解析，但诸如图像、样式表和框架之类的子资源仍在加载中.
-            # "complete": 文档和所有子资源已完全加载.
+            # Wait for the page to load.
+            # document.readyState: A property indicating the loading state of the document. It has the following possible values:
+            # "loading": Document still loading.
+            # "interactive": The document has finished loading, the document has been parsed, but Sub-resources such as images, stylesheets, and frames are still loading.
+            # "complete": The document and all Sub-resources are fully loaded.
             self._wait.until(lambda driver: driver.execute_script("return document.readyState") == "complete")
 
-            # 确保目录存在
+            # Ensure the directory exists.
             screenshots_dir = os.path.join(root_path(), 'datas', 'screenshots')
             os.makedirs(screenshots_dir, exist_ok=True)
 
-            # 生成文件名
+            # Generate file name.
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             filename = f"{name}_{timestamp}.png"
 
-            # 使用绝对路径
+            # Use absolute paths.
             filepath = os.path.join(screenshots_dir, filename)
 
-            # 保存截图
+            # Save screenshot file.
             self.driver.save_screenshot(filepath)
-            INFO.logger.info(f"截图保存至: {filepath}")
+            INFO.logger.info(f"Save screenshots to: {filepath}.")
             return filepath
         except Exception as e:
-            ERROR.logger.error(f"截图失败: {str(e)}")
+            ERROR.logger.error(f"Failed to take screenshot: {str(e)}")
             return None
 
     def open(self, url: str) -> None:
         """
-        打开网页
+        Open the specified web page URL.
 
-        :param url: 要打开的网页URL
+        :param url: Web page URL.
         :Usage:
             self.open("https://www.google.com")
         """
         try:
             self.driver.get(url)
-            INFO.logger.info(f"成功打开URL: {url}")
+            INFO.logger.info(f"Successfully opened URL: {url}.")
         except TimeoutException:
-            ERROR.logger.error(f"打开URL超时: {url}")
+            ERROR.logger.error(f"Timeout when opening URL: {url}.")
             self.take_screenshot("open_url_timeout")
             raise
         except WebDriverException as e:
-            ERROR.logger.error(f"打开URL时发生WebDriver异常: {url}, 异常信息: {str(e)}")
+            ERROR.logger.error(f"A WebDriverException occurred when opening the URL: {url}, error message: {str(e)}")
             self.take_screenshot("open_url_exception")
             raise
         except Exception as e:
-            ERROR.logger.error(f"打开URL时发生未知异常: {url}, 异常信息: {str(e)}")
+            ERROR.logger.error(f"An unknown exception occurred when opening the URL: {url}, error message: {str(e)}")
             self.take_screenshot("open_url_unknown_exception")
             raise
 
     def click(self, selector: str = None, by: str = 'css_selector', delay: int = 0,
               pos: Tuple[int, int] = None) -> None:
         """
-        点击元素或指定坐标
+        Click the specified element or position.
 
-        :param selector: 元素选择器
-        :param by: 定位方式，默认为'css_selector'
-        :param delay: 点击前的延迟时间，默认为0秒
-        :param pos: 坐标位置 (x, y)，默认为None
+        :param selector: Element selector.
+        :param by: Locator method.
+        :param delay: Delay time before clicking.
+        :param pos: Click position.
         :Usage:
             self.click("#submit_button")
             self.click(pos=(100, 200))
@@ -178,24 +179,24 @@ class BaseCase:
         if pos:
             try:
                 if delay > 0:
-                    time.sleep(delay)  # 仅在明确要求时等待
+                    time.sleep(delay)  # Wait only if explicitly requested.
 
-                # 使用JavaScript点击指定坐标
+                # Use JavaScript to click to specify the position.
                 self.driver.execute_script(f"window.scrollTo({pos[0]}, {pos[1]});")
                 self.driver.execute_script(f"document.elementFromPoint({pos[0]}, {pos[1]}).click();")
-                INFO.logger.info(f"成功点击坐标: {pos}")
+                INFO.logger.info(f"Successfully clicked position: {pos}.")
             except Exception as e:
-                ERROR.logger.error(f"点击坐标失败: {pos}, 错误信息: {e}")
+                ERROR.logger.error(f"Failed to click position: {pos}, error message: {str(e)}")
                 self.take_screenshot("click_pos_error")
                 raise
         else:
-            max_attempts = 3  # 最大重试次数
+            max_attempts = 3  # Maximum number of retries.
             attempt = 0
             last_exception = None
 
             while attempt < max_attempts:
                 try:
-                    # 等待任何可能的Ajax请求完成
+                    # Wait for the page to load.
                     script = (
                         "return (typeof jQuery !== 'undefined') ? "
                         "jQuery.active == 0 : true"
@@ -204,28 +205,28 @@ class BaseCase:
 
                     locator = SelectorUtil.get_selenium_locator(selector, by)
 
-                    # 等待元素存在、可见并可点击
+                    # Wait for the element to appear.
                     self._wait.until(EC.presence_of_element_located(locator))
                     self._wait.until(EC.visibility_of_element_located(locator))
                     element = self._wait.until(EC.element_to_be_clickable(locator))
 
-                    # 使用JavaScript滚动到元素位置，不使用smooth效果
+                    # Scroll to the element.
                     self.driver.execute_script(
                         "arguments[0].scrollIntoView(true);",
                         element
                     )
 
                     if delay > 0:
-                        time.sleep(delay)  # 仅在明确要求时等待
+                        time.sleep(delay)  # Wait only if explicitly requested.
 
-                    # 尝试点击
+                    # Click the element.
                     try:
                         element.click()
                     except ElementClickInterceptedException:
-                        # 如果普通点击失败，尝试JavaScript点击
+                        # If the element attribute is blocked, use JavaScript to click.
                         self.driver.execute_script("arguments[0].click();", element)
 
-                    INFO.logger.info(f"成功点击元素: {selector} (by={by})")
+                    INFO.logger.info(f"Successfully clicked element: {selector} (by={by}).")
                     return
 
                 except TimeoutException as e:
@@ -237,29 +238,29 @@ class BaseCase:
                     attempt += 1
                     continue
 
-            # 如果所有重试都失败了
-            ERROR.logger.error(f"点击元素失败(重试{max_attempts}次后): {selector} (by={by})")
+            # If the maximum number of retries is reached, an exception is thrown.
+            ERROR.logger.error(f"Failed to click element: {selector} (by={by}), error message: {str(last_exception)}")
             self.take_screenshot("click_error")
 
-            # 记录页面源码以便调试
+            # Output the page source code.
             try:
                 page_source = self.driver.page_source
-                ERROR.logger.error(f"页面源码: {page_source}")
+                ERROR.logger.error(f"Page source code: {page_source}")
             except Exception as e:
-                ERROR.logger.error(f"获取页面源码失败: {str(e)}")
+                ERROR.logger.error(f"Failed to get page source code: {str(e)}")
 
             raise last_exception
 
     def type(self, selector: str, text: str, by: str = 'css_selector', timeout: int = None,
              retry: bool = False) -> None:
         """
-        输入文本
+        Enter text into the specified element.
 
-        :param selector: 元素选择器
-        :param text: 要输入的文本
-        :param by: 定位方式，默认为'css_selector'
-        :param timeout: 超时时间，默认为None
-        :param retry: 是否重试，默认为False
+        :param selector: Element selector.
+        :param text: Text to enter.
+        :param by: Locator method.
+        :param timeout: Timeout.
+        :param retry: Retry flag.
         :Usage:
             self.type("#input_field", "example text"，timeout=10，retry=True)
         """
@@ -267,44 +268,47 @@ class BaseCase:
             element = self.find_element(selector, by, timeout)
             element.clear()
             element.send_keys(text)
-            INFO.logger.info(f"成功输入文本: {text} 到元素: {selector} (by={by})")
+            INFO.logger.info(f"Successfully entered text: {text} into the element: {selector} (by={by}).")
         except TimeoutException:
-            ERROR.logger.error(f"输入文本超时: {text} 到元素: {selector} (by={by})")
+            ERROR.logger.error(f"Timeout when entering text: {text} into the element: {selector} (by={by}).")
             self.take_screenshot("type_timeout")
             if retry:
                 self.type(selector, text, by, timeout, retry=False)
             else:
                 raise
         except Exception as e:
-            ERROR.logger.error(f"输入文本失败: {text} 到元素: {selector} (by={by}), 错误: {str(e)}")
+            ERROR.logger.error(
+                f"Failed to enter text: {text} into the element: {selector} (by={by}), error message: {str(e)}")
             self.take_screenshot("type_error")
             raise
 
     def is_element_present(self, selector: str, by: str = 'css_selector') -> bool:
         """
-        检查元素是否存在
+        Check if the element exists.
 
-        :param selector: 元素选择器
-        :param by: 定位方式，默认为'css_selector'
-        :return: 元素是否存在
+        :param selector: Element selector.
+        :param by: Locator method.
+        :return: 1. True: Element exists. 2. False: Element does not exist.
         :Usage:
             is_present = self.is_element_present("#element_id")
         """
         try:
             self.find_element(selector, by)
+            INFO.logger.info(f"Element found: {selector} (by={by}).")
             return True
         except TimeoutException:
+            INFO.logger.info(f"Element not found (timeout): {selector} (by={by}).")
             return False
         except Exception as e:
-            ERROR.logger.error(f"检查元素存在时失败: {selector} (by={by}), 错误: {str(e)}")
+            ERROR.logger.error(f"Failed to find element: {selector} (by={by}), error message: {str(e)}")
             return False
 
     @staticmethod
     def sleep(seconds: float = 0.1) -> None:
         """
-        暂停执行
+        Pause for a specified number of seconds.
 
-        :param seconds: 暂停时间，默认为2秒
+        :param seconds: Pause time (seconds).
         :Usage:
             self.sleep(5)
         """
@@ -312,154 +316,155 @@ class BaseCase:
 
     def start_app(self, app_package: str) -> None:
         """
-        启动App
+        Start the App.
 
-        :param app_package: App包名
+        :param app_package: App package name.
         :Usage:
             self.start_app("com.example.app")
         """
         try:
             if isinstance(self.driver, AppDriver):
                 self.driver.activate_app(app_package)
-                INFO.logger.info(f"成功启动应用: {app_package}")
+                INFO.logger.info(f"Successfully started the App: {app_package}.")
             else:
-                raise NotImplementedError("Web端不支持start_app方法")
+                raise NotImplementedError("The Web end does not support the 'start_app' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"启动应用失败: {app_package}, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to start the App: {app_package}, error message: {str(e)}")
             raise
 
     def close_app(self, app_package: str) -> None:
         """
-        退出App
+        Close the App.
 
-        :param app_package: App包名
+        :param app_package: App package name.
         :Usage:
             self.close_app("com.example.app")
         """
         try:
             if isinstance(self.driver, AppDriver):
                 self.driver.terminate_app(app_package)
-                INFO.logger.info(f"成功关闭应用: {app_package}")
+                INFO.logger.info(f"Successfully closed the App: {app_package}.")
             else:
-                raise NotImplementedError("Web端不支持close_app方法")
+                raise NotImplementedError("The Web end does not support the 'close_app' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"关闭应用失败: {app_package}, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to close the App: {app_package}, error message: {str(e)}")
             raise
 
     @property
     def current_package(self) -> str:
         """
-        获取当前App包名
+        Get the current App package name.
 
-        :return: 当前App包名, 如：com.android.browser
+        :return: Current App package name. e.g.: com.example.app.
         :Usage:
             print(self.current_package)
         """
         if isinstance(self.driver, AppDriver):
             return self.driver.current_package
-        raise NotImplementedError("Web端不支持current_package方法")
+        raise NotImplementedError("The Web end does not support the 'current_package' method!")
 
     @property
     def current_activity(self) -> str:
         """
-        获取当前App活动名
+        Get the current App activity name.
 
-        :return: 当前App活动名，如：.BrowserActivity
+        :return: Current App activity name. e.g.: .MainActivity.
         :Usage:
             print(self.current_activity)
         """
         if isinstance(self.driver, AppDriver):
             return self.driver.current_activity
-        raise NotImplementedError("Web端不支持current_activity方法")
+        raise NotImplementedError("The Web end does not support the 'current_activity' method!")
 
     def install_app(self, app_path: str) -> None:
         """
-        安装App
+        Install the App.
 
-        :param app_path: App路径
+        :param app_path: Apk file path.
         :Usage:
             self.install_app("/path/to/app.apk")
         """
         try:
             if isinstance(self.driver, AppDriver):
                 self.driver.install_app(app_path)
-                INFO.logger.info(f"成功安装应用: {app_path}")
+                INFO.logger.info(f"Successfully installed the App: {app_path}.")
             else:
-                raise NotImplementedError("Web端不支持install_app方法")
+                raise NotImplementedError("The Web end does not support the 'install_app' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"安装应用失败: {app_path}, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to install the App: {app_path}, error message: {str(e)}")
             raise
 
     def uninstall_app(self, app_package: str) -> None:
         """
-        卸载App
+        Uninstall the App.
 
-        :param app_package: App包名
+        :param app_package: App package name.
         :Usage:
             self.uninstall_app("com.example.app")
         """
         try:
             if isinstance(self.driver, AppDriver):
                 self.driver.remove_app(app_package)
-                INFO.logger.info(f"成功卸载应用: {app_package}")
+                INFO.logger.info(f"Successfully uninstalled the App: {app_package}.")
             else:
-                raise NotImplementedError("Web端不支持uninstall_app方法")
+                raise NotImplementedError("The Web end does not support the 'uninstall_app' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"卸载应用失败: {app_package}, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to uninstall the App: {app_package}, error message: {str(e)}")
             raise
 
     def is_app_installed(self, app_package: str) -> bool:
         """
-        检查App是否安装
+        Check if the App is installed.
 
-        :param app_package: App包名
-        :return: App是否安装
+        :param app_package: App package name.
+        :return: 1. True: Installed. 2. False: Not installed.
         :Usage:
             is_installed = self.is_app_installed("com.example.app")
         """
         try:
             if isinstance(self.driver, AppDriver):
                 return self.driver.is_app_installed(app_package)
-            raise NotImplementedError("Web端不支持is_app_installed方法")
+            raise NotImplementedError("The Web end does not support the 'is_app_installed' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"检查应用是否安装失败: {app_package}, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to check if the App is installed: {app_package}, error message: {str(e)}")
             raise
 
     def background_app(self, seconds: int) -> None:
         """
-        将App置于后台运行
+        Put the App in the background.
 
-        :param seconds: 后台运行时间，单位为秒
+        :param seconds: Background time (seconds).
         :Usage:
             self.background_app(5)
         """
         try:
             if isinstance(self.driver, AppDriver):
                 self.driver.background_app(seconds)
-                INFO.logger.info(f"成功将应用置于后台: {seconds}秒")
+                INFO.logger.info(f"Successfully put the App in the background for {seconds} seconds.")
             else:
-                raise NotImplementedError("Web端不支持background_app方法")
+                raise NotImplementedError("The Web end does not support the 'background_app' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"将应用置于后台失败, 错误信息: {e}")
+            ERROR.logger.error(
+                f"Failed to put the App in the background for {seconds} seconds, error message: {str(e)}")
             raise
 
     @property
     def get_network_connect(self) -> int:
         """
-        获取手机网络连接类型
+        Get the mobile network connection type.
 
-        :return: 网络连接类型
+        :return: 0 (None), 1 (Airplane Mode), 2 (Wi-fi only), 4 (Data only), 6 (All network on).
         :Usage:
             network_type = self.get_network_connect
 
         +--------------------+------+------+---------------+
-        | Value (Alias)      | Data | Wifi | Airplane Mode |
+        | Value (Alias)      | Data | Wi-fi| Airplane Mode |
         +====================+======+======+===============+
         | 0 (None)           | 0    | 0    | 0             |
         +--------------------+------+------+---------------+
         | 1 (Airplane Mode)  | 0    | 0    | 1             |
         +--------------------+------+------+---------------+
-        | 2 (Wifi only)      | 0    | 1    | 0             |
+        | 2 (Wi-fi only)     | 0    | 1    | 0             |
         +--------------------+------+------+---------------+
         | 4 (Data only)      | 1    | 0    | 0             |
         +--------------------+------+------+---------------+
@@ -468,39 +473,41 @@ class BaseCase:
         """
         if isinstance(self.driver, AppDriver):
             return self.driver.network_connection
-        raise NotImplementedError("Web端不支持get_network_connect方法")
+        raise NotImplementedError("The Web end does not support the 'get_network_connect' method!")
 
     def set_network_connect(self, connect_type: int) -> None:
         """
-        设置手机网络连接类型
+        Set the mobile network connection type.
 
-        :param connect_type: 网络连接类型
+        :param connect_type: 0 (None), 1 (Airplane Mode), 2 (Wi-fi only), 4 (Data only), 6 (All network on).
         :Usage:
             self.set_network_connect(2)
         """
         try:
             if isinstance(self.driver, AppDriver):
                 self.driver.set_network_connection(connect_type)
-                INFO.logger.info(f"成功设置网络连接类型: {connect_type}")
+                INFO.logger.info(f"Successfully set the network connection type: {connect_type}.")
             else:
-                raise NotImplementedError("Web端不支持set_network_connect方法")
+                raise NotImplementedError("The Web end does not support the 'set_network_connect' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"设置网络连接类型失败, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to set the network connection type: {connect_type}, error message: {str(e)}")
             raise
 
-    def press_keycode(self, keycode: int, metastate: Optional[int] = None, flags: Optional[int] = None) -> None:
+    def press_keycode(self, keycode: int, metastate: Optional[int] = None, flags: Optional[int] = None) -> Self:
         """
-        按键事件
+        Sends a keycode to the device. Android only.
+        Possible keycodes can be found in https://blog.csdn.net/feizhixuan46789/article/details/16801429.
 
-        :param keycode: 按键码
-        :param metastate: 按键的元状态（可选），如：1 表示 META_SHIFT_ON
-        :param flags: 按键事件的标志（可选），如：0 表示没有特殊标志
+        :param keycode: The keycode to be sent to the device.
+        :param metastate: Meta information about the keycode being sent. e.g.: 1 (Shift), 2 (Ctrl), 4 (Alt).
+        :param flags: The set of key event flags. e.g.: 0 (None), 1 (Long press).
+        :return: Self instance.
         :Usage:
             self.press_keycode(66)
 
-        常用按键码列表：
+        List of commonly used keycodes:
         +--------------------+------------------+----------------------+
-        | 键码                | 名称             | 描述                 |
+        | Keycode            | Keyname          | Description          |
         +====================+==================+======================+
         | 3                  | HOME             | 返回主屏幕            |
         +--------------------+------------------+----------------------+
@@ -535,16 +542,17 @@ class BaseCase:
                     self.driver.press_keycode(keycode, metastate)
                 else:
                     self.driver.press_keycode(keycode)
-                INFO.logger.info(f"成功发送按键码: {keycode}")
+                INFO.logger.info(f"Successfully sent the keycode: {keycode}.")
             else:
-                raise NotImplementedError("Web端不支持press_keycode方法")
+                raise NotImplementedError("The Web end does not support the 'press_keycode' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"发送按键码失败: {keycode}, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to send the keycode: {keycode}, error message: {str(e)}")
             raise
+        return self
 
-    def open_notify(self) -> None:
+    def open_notify(self) -> Self:
         """
-        打开通知栏
+        Open notification shade in Android.
 
         :Usage:
             self.open_notify()
@@ -552,52 +560,55 @@ class BaseCase:
         try:
             if isinstance(self.driver, AppDriver):
                 self.driver.open_notifications()
-                INFO.logger.info("成功打开通知栏")
+                INFO.logger.info("Successfully opened the notification shade.")
             else:
-                raise NotImplementedError("Web端不支持open_notify方法")
+                raise NotImplementedError("The Web end does not support the 'open_notify' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"打开通知栏失败, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to open the notification shade, error message: {str(e)}")
             raise
+        return self
 
     @property
     def contexts(self) -> List[str]:
         """
-        获取所有上下文名称
+        Get all the contexts within the current session.
 
-        :return: 上下文列表，如：['NATIVE_APP', 'WEBVIEW_com.example.app']
+        :return: List of contexts. e.g.: ["NATIVE_APP", "WEBVIEW_com.example.app"]
         :Usage:
             contexts = self.contexts
+            print(contexts)
         """
         if isinstance(self.driver, AppDriver):
             return self.driver.contexts
-        raise NotImplementedError("Web端不支持contexts方法")
+        raise NotImplementedError("The Web end does not support the 'contexts' method!")
 
-    def switch_to_context(self, context: str) -> None:
+    def switch_to_context(self, context_name: str) -> Self:
         """
-        切换上下文
+        Sets the context for the current session.
 
-        :param context: 上下文名称
+        :param context_name: The name of the context to switch to.
         :Usage:
             self.switch_to_context("WEBVIEW_com.example.app")
         """
         try:
             if isinstance(self.driver, AppDriver):
-                self.driver.switch_to.context(context)
-                INFO.logger.info(f"成功切换到上下文: {context}")
+                self.driver.switch_to.context(context_name)
+                INFO.logger.info(f"Successfully switched to the context: {context_name}.")
             else:
-                raise NotImplementedError("Web端不支持switch_to_context方法")
+                raise NotImplementedError("The Web end does not support the 'switch_to_context' method!")
         except WebDriverException as e:
-            ERROR.logger.error(f"切换上下文失败, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to switch to the context: {context_name}, error message: {str(e)}")
             raise
+        return self
 
     def find_element(self, selector: str, by: str = 'css_selector', timeout: Optional[int] = None) -> WebElement:
         """
-        查找单个元素
+        Find a single element.
 
-        :param selector: 元素选择器
-        :param by: 定位方式，默认为'css_selector'
-        :param timeout: 超时时间，默认为None
-        :return: WebElement对象
+        :param selector: Element selector.
+        :param by: Locator method.
+        :param timeout: Timeout.
+        :return: WebElement object.
         :Usage:
             element = self.find_element("#element_id")
         """
@@ -612,25 +623,25 @@ class BaseCase:
             element = temp_wait.until(
                 EC.presence_of_element_located(locator)
             )
-            INFO.logger.info(f"成功查找到元素: {selector} (by={by})")
+            INFO.logger.info(f"Successfully found the element: {selector} (by={by}).")
             return element
         except TimeoutException:
-            ERROR.logger.error(f"查找元素超时: {selector} (by={by})")
+            ERROR.logger.error(f"Timeout when finding the element: {selector} (by={by}).")
             self.take_screenshot("find_element_timeout")
             raise
         except Exception as e:
-            ERROR.logger.error(f"查找元素失败: {selector} (by={by}), 错误: {str(e)}")
+            ERROR.logger.error(f"Failed to find the element: {selector} (by={by}), error message: {str(e)}")
             self.take_screenshot("find_element_error")
             raise
 
     def find_elements(self, selector: str, by: str = 'css_selector', timeout: Optional[int] = None) -> List[WebElement]:
         """
-        查找多个元素
+        Find multiple elements.
 
-        :param selector: 元素选择器
-        :param by: 定位方式，默认为'css_selector'
-        :param timeout: 超时时间，默认为None
-        :return: WebElement对象列表
+        :param selector: Element selector.
+        :param by: Locator method.
+        :param timeout: Timeout.
+        :return: List of WebElement objects.
         :Usage:
             elements = self.find_elements(".element_class")
         """
@@ -645,24 +656,24 @@ class BaseCase:
             elements = temp_wait.until(
                 EC.presence_of_all_elements_located(locator)
             )
-            INFO.logger.info(f"成功查找到元素: {selector} (by={by})")
+            INFO.logger.info(f"Successfully found the elements: {selector} (by={by}).")
             return elements
         except TimeoutException:
-            ERROR.logger.error(f"查找元素超时: {selector} (by={by})")
+            ERROR.logger.error(f"Timeout when finding the elements: {selector} (by={by}).")
             self.take_screenshot("find_elements_timeout")
             raise
         except Exception as e:
-            ERROR.logger.error(f"查找元素失败: {selector} (by={by}), 错误: {str(e)}")
+            ERROR.logger.error(f"Failed to find the elements: {selector} (by={by}), error message: {str(e)}")
             self.take_screenshot("find_elements_error")
             raise
 
     def send_keys(self, selector: str, text: str, by: str = 'css_selector') -> None:
         """
-        输入文本
+        Enter text into the specified element.
 
-        :param selector: 元素选择器
-        :param text: 要输入的文本
-        :param by: 定位方式，默认为'css_selector'
+        :param selector: Element selector.
+        :param text: Text to enter.
+        :param by: Locator method.
         :Usage:
             self.send_keys("#input_field", "example text")
         """
@@ -670,12 +681,12 @@ class BaseCase:
 
     def download_image(self, element: WebElement, save_name: str, save_path: Optional[str] = None) -> Union[str, None]:
         """
-        下载网页图片
+        Download the image of the web page.
 
-        :param element: WebElement 元素
-        :param save_name: 保存的文件名
-        :param save_path: 保存的路径，默认为 downloads_path
-        :return: 完整路径
+        :param element: WebElement object.
+        :param save_name: Image file save name.
+        :param save_path: Image file save path. Defaults to 'downloads_path'.
+        :return: Image file full path.
         :Usage:
             img_el = self.find_element("img")
             image_path = self.download_image(img_el, "captcha.png")
@@ -687,219 +698,240 @@ class BaseCase:
 
             os.makedirs(save_path, exist_ok=True)
 
-            # 等待图片元素完全加载
+            # Wait for the image element to load completely.
             self._wait.until(EC.visibility_of(element))
 
-            # 获取图片的 src 属性
+            # Get the src attribute of the image.
             image_src = element.get_attribute("src")
 
             if image_src.startswith("data:image"):
-                # 处理 base64 编码的图片
+                # Handling base64 encoded images.
                 header, encoded = image_src.split(",", 1)
                 image_data = base64.b64decode(encoded)
                 file_path = os.path.join(save_path, f"{save_name}")
                 with open(file_path, "wb") as file:
                     file.write(image_data)
-                INFO.logger.info(f"网络图片下载成功: {file_path}")
+                INFO.logger.info(f"Succeeded in downloading the base64 image: {file_path}.")
             else:
-                # 处理普通 URL 的图片
+                # Handling normal images.
                 response = requests.get(image_src, stream=True)
                 if response.status_code == 200:
                     file_path = os.path.join(save_path, f"{save_name}")
                     with open(file_path, 'wb') as file:
                         for chunk in response.iter_content(1024):
                             file.write(chunk)
-                    INFO.logger.info(f"网络图片下载成功: {file_path}")
+                    INFO.logger.info(f"Succeeded in downloading the normal image: {file_path}.")
                 else:
-                    ERROR.logger.error(f"网络图片下载失败，状态码: {response.status_code}")
+                    ERROR.logger.error(
+                        f"Failed to download the image: {image_src}, status code: {response.status_code}.")
                     file_path = None
 
             return file_path
 
         except Exception as e:
-            ERROR.logger.error(f"下载图片时发生错误: {str(e)}")
+            ERROR.logger.error(f"An unknown exception occurred when downloading the image: {str(e)}")
             return None
 
-    def get_element_attribute(self, element: WebElement, attribute: str) -> str:
+    def get_window_size(self, windowHandle: str = "current") -> dict:
         """
-        获取元素的属性值
+        Gets the width and height of the current window.
 
-        :param element: WebElement 元素
-        :param attribute: 要获取的属性名称
-        :return: 属性值
+        :param windowHandle: Defaults to "current".
+        :return: A dict containing the width and height of the window.
+        :Usage:
+            size = self.get_window_size()
+            width, height = self.get_window_size().values()
+        """
+        try:
+            size = self.driver.get_window_size(windowHandle)
+            INFO.logger.info(f"Current window width: {size['width']}, height: {size['height']}.")
+            return size
+        except WebDriverException as e:
+            ERROR.logger.error(f"Failed to get the window size: {str(e)}")
+            raise
+
+    def get_element_attribute(self, element: WebElement, attribute: str) -> str | None:
+        """
+        Get the value of the specified attribute of the element.
+
+        :param element: WebElement object.
+        :param attribute: Attribute name.
+        :return: Attribute value.
         :Usage:
             value = self.get_element_attribute(element, "src")
         """
         try:
             attribute_value = element.get_attribute(attribute)
-            INFO.logger.info(f"成功获取元素属性: {attribute} = {attribute_value}")
+            INFO.logger.info(f"Successfully obtained the element attribute: {attribute}={attribute_value}.")
             return attribute_value
         except Exception as e:
-            ERROR.logger.error(f"获取元素属性时发生错误: {str(e)}")
+            ERROR.logger.error(f"Failed to get the element attribute: {attribute}, error message: {str(e)}")
             self.take_screenshot("get_element_attribute_error")
             raise
 
     def refresh(self) -> None:
         """
-        刷新页面
+        Refreshes the current page.
 
         :Usage:
             self.refresh()
         """
         try:
             self.driver.refresh()
-            INFO.logger.info("页面刷新成功")
+            INFO.logger.info("Successfully refreshed the page.")
         except Exception as e:
-            ERROR.logger.error(f"刷新页面失败: {str(e)}")
+            ERROR.logger.error(f"Failed to refresh the page: {str(e)}")
             self.take_screenshot("refresh_error")
             raise
 
     def back(self) -> None:
         """
-        返回上一页
+        Returns to the previous page in the browser history.
 
         :Usage:
             self.back()
         """
         try:
             self.driver.back()
-            INFO.logger.info("成功返回上一页")
+            INFO.logger.info("Successfully returned to the previous page.")
         except Exception as e:
-            ERROR.logger.error(f"返回上一页失败: {str(e)}")
+            ERROR.logger.error(f"Failed to return to the previous page: {str(e)}")
             self.take_screenshot("back_error")
             raise
 
     def forward(self) -> None:
         """
-        前进到下一页
+        Forward to the next page in the browser history.
 
         :Usage:
             self.forward()
         """
         try:
             self.driver.forward()
-            INFO.logger.info("成功前进到下一页")
+            INFO.logger.info("Successfully moved forward to the next page.")
         except Exception as e:
-            ERROR.logger.error(f"前进到下一页失败: {str(e)}")
+            ERROR.logger.error(f"Failed to move forward to the next page: {str(e)}")
             self.take_screenshot("forward_error")
             raise
 
     def close(self) -> None:
         """
-        关闭当前窗口
+        Closes the current window.
 
         :Usage:
             self.close()
         """
         try:
             self.driver.close()
-            INFO.logger.info("成功关闭当前窗口")
+            INFO.logger.info("Successfully closed the current window.")
         except Exception as e:
-            ERROR.logger.error(f"关闭当前窗口失败: {str(e)}")
+            ERROR.logger.error(f"Failed to close the current window: {str(e)}")
             self.take_screenshot("close_error")
             raise
 
     def quit(self) -> None:
         """
-        退出浏览器
+        Quits the driver and closes all windows.
 
         :Usage:
             self.quit()
         """
         try:
             self.driver.quit()
-            INFO.logger.info("成功退出浏览器")
+            INFO.logger.info("Successfully exited the browser.")
         except Exception as e:
-            ERROR.logger.error(f"退出浏览器失败: {str(e)}")
+            ERROR.logger.error(f"Failed to exit the browser: {str(e)}")
             self.take_screenshot("quit_error")
             raise
 
     def maximize_window(self) -> None:
         """
-        最大化窗口
+        Maximizes the current window.
 
         :Usage:
             self.maximize_window()
         """
         try:
             self.driver.maximize_window()
-            INFO.logger.info("成功最大化窗口")
+            INFO.logger.info("Successfully maximized the window.")
         except Exception as e:
-            ERROR.logger.error(f"最大化窗口失败: {str(e)}")
+            ERROR.logger.error(f"Failed to maximize the window: {str(e)}")
             self.take_screenshot("maximize_window_error")
             raise
 
     def minimize_window(self) -> None:
         """
-        最小化窗口
+        Minimizes the current window.
 
         :Usage:
             self.minimize_window()
         """
         try:
             self.driver.minimize_window()
-            INFO.logger.info("成功最小化窗口")
+            INFO.logger.info("Successfully minimized the window.")
         except Exception as e:
-            ERROR.logger.error(f"最小化窗口失败: {str(e)}")
+            ERROR.logger.error(f"Failed to minimize the window: {str(e)}")
             self.take_screenshot("minimize_window_error")
             raise
 
-    def switch_to_frame(self, iframe) -> None:
+    def switch_to_frame(self, frame: Union[str, int, WebElement]) -> None:
         """
-        切换到iframe
+        Switches focus to the specified frame, by index, name, or WebElement.
 
-        :param iframe: iframe元素或索引
+        :param frame: The name of the frame, index, or WebElement.
         :Usage:
             self.switch_to_frame("iframe_name")
+            self.switch_to_frame(0)
+            self.switch_to_frame(self.find_element("iframe"))
         """
         try:
-            self.driver.switch_to.frame(iframe)
-            INFO.logger.info(f"成功切换到iframe: {iframe}")
+            self.driver.switch_to.frame(frame)
+            INFO.logger.info(f"Successfully switched to the frame: {frame}.")
         except Exception as e:
-            ERROR.logger.error(f"切换到iframe失败: {str(e)}")
+            ERROR.logger.error(f"Failed to switch to the frame: {frame}, error message: {str(e)}")
             self.take_screenshot("switch_to_frame_error")
             raise
 
     def switch_to_default_frame(self) -> None:
         """
-        切换到默认框架
+        Switches focus to the default frame.
 
         :Usage:
             self.switch_to_default_frame()
         """
         try:
             self.driver.switch_to.default_content()
-            INFO.logger.info("成功切换到默认内容")
+            INFO.logger.info("Successfully switched to the default frame.")
         except Exception as e:
-            ERROR.logger.error(f"切换到默认内容失败: {str(e)}")
+            ERROR.logger.error(f"Failed to switch to the default frame: {str(e)}")
             self.take_screenshot("switch_to_default_frame_error")
             raise
 
     def execute_script(self, script: str, *args) -> Any:
         """
-        执行JavaScript代码
+        Synchronously Executes JavaScript in the current window/frame.
 
-        :param script: JavaScript代码
-        :param args: 传递给JavaScript代码的参数
-        :return: JavaScript代码的执行结果
+        :param script: JavaScript code to execute.
+        :param args: Arguments to pass to the script.
+        :return: The result of the script.
         :Usage:
             result = self.execute_script("return document.title;")
         """
         try:
             result = self.driver.execute_script(script, *args)
-            INFO.logger.info(f"成功执行JavaScript代码: {script}")
+            INFO.logger.info(f"Successfully executed JavaScript code: {script}.")
             return result
         except Exception as e:
-            ERROR.logger.error(f"执行JavaScript代码失败: {str(e)}")
+            ERROR.logger.error(f"Failed to execute JavaScript code: {script}, error message: {str(e)}")
             self.take_screenshot("execute_script_error")
             raise
 
     @property
     def current_url(self) -> str:
         """
-        获取当前URL
+        Gets the URL of the current page.
 
-        :return: 当前URL
+        :return: The URL of the current page.
         :Usage:
             url = self.current_url
         """
@@ -907,16 +939,16 @@ class BaseCase:
             url = self.driver.current_url
             return url
         except Exception as e:
-            ERROR.logger.error(f"获取当前URL失败: {str(e)}")
+            ERROR.logger.error(f"Failed to get the current URL: {str(e)}")
             self.take_screenshot("current_url_error")
             raise
 
     @property
     def current_window_handle(self) -> str:
         """
-        获取当前窗口句柄
+        Gets the current window handle.
 
-        :return: 当前窗口句柄
+        :return: The current window handle.
         :Usage:
             handle = self.current_window_handle
         """
@@ -924,145 +956,153 @@ class BaseCase:
             handle = self.driver.current_window_handle
             return handle
         except Exception as e:
-            ERROR.logger.error(f"获取当前窗口句柄失败: {str(e)}")
+            ERROR.logger.error(f"Failed to get the current window handle: {str(e)}")
             self.take_screenshot("current_window_handle_error")
             raise
 
     @property
     def current_page_title(self) -> str:
         """
-        获取页面标题
+        Gets the title of the current page.
 
-        :return: 页面标题
+        :return: The title of the current page.
         :Usage:
-            title = self.title
+            title = self.current_page_title
         """
         try:
             title = self.driver.title
-            INFO.logger.info(f"当前页面标题: {title}")
+            INFO.logger.info(f"Successfully obtained the page title: {title}")
             return title
         except Exception as e:
-            ERROR.logger.error(f"获取页面标题失败: {str(e)}")
+            ERROR.logger.error(f"Failed to get the page title: {str(e)}")
             self.take_screenshot("current_page_title_error")
             raise
 
     @property
     def current_page_code(self) -> str:
         """
-        获取页面源码
+        Gets the source code of the current page.
 
-        :return: 页面源码
+        :return: The source code of the current page.
         :Usage:
             source = self.page_source
         """
         try:
             source = self.driver.page_source
-            INFO.logger.info("成功获取页面源码")
+            INFO.logger.info("Successfully obtained the page source code.")
             return source
         except Exception as e:
-            ERROR.logger.error(f"获取页面源码失败: {str(e)}")
+            ERROR.logger.error(f"Failed to get the page source code: {str(e)}")
             self.take_screenshot("current_page_code_error")
             raise
 
-    def tap(self, positions: List[Tuple[int, int]], duration: Optional[int] = None) -> Self:
+    def tap(self, pos: List[Tuple[int, int]], duration: Optional[int] = None) -> Self:
         """
-        作用: 在指定的坐标上模拟点击操作.
-        场景: 适用于需要在屏幕上的多个位置上模拟点击操作的场景, 如: 红包雨.
+        Function: Simulates a click operation at the specified coordinates.
+        Scenario: Applicable to scenarios where multiple click operations need to be simulated at different screen locations.
+        e.g. 'Red envelope rain'.
 
-        :param positions: 一个包含 x/y 坐标的元组数组，长度最多为 5
-        :param duration: 单次点击持续时间（毫秒）
-        :return: BaseCase对象, 允许链式调用
+        :param pos: A tuple array containing x/y positions, up to 5 in length.
+        :param duration: Single click duration (ms)
+        :return: Self instance.
         :Usage:
             self.tap([(100, 20), (100, 60), (100, 100)], 500)
         """
-        if len(positions) > 5:
-            raise ValueError("positions 数组的长度不能超过 5")
+        if len(pos) > 5:
+            raise ValueError("The maximum number of taps is 5.")
 
         try:
-            self.driver.tap(positions, duration)
-            INFO.logger.info(f"成功点击坐标: {positions} 持续时间: {duration}ms")
+            self.driver.tap(pos, duration)
+            INFO.logger.info(f"Successfully tapped the positions: {pos}.")
         except WebDriverException as e:
-            ERROR.logger.error(f"点击坐标失败: {positions}, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to tap the positions: {pos}, error message: {e}")
             raise
         return self
 
     def drag_and_drop(self, start_element: WebElement, end_element: WebElement, pause: Optional[float] = None) -> Self:
         """
-        作用: 拖拽元素
-        场景: 用于模拟拖放操作，适用于在 UI 中重新排列元素或移动项目, 如: 滑动验证码.
+        Function: Drag the origin element to the destination element.
+        Scenario: Applicable to scenarios where elements need to be dragged and dropped.
+        e.g. 'Slider captcha'.
 
-        :param start_element: 起始元素
-        :param end_element: 结束元素
-        :param pause: 拖拽前的暂停时间(秒)
-        :return: BaseCase对象, 允许链式调用
+        :param start_element: The element to drag.
+        :param end_element: The element to drag to.
+        :param pause: Pause time (seconds), in float seconds.
+        :return: Self instance.
         :Usage:
             self.drag_and_drop(el1, el2, 0.2)
         """
         try:
             self.driver.drag_and_drop(start_element, end_element, pause)
-            INFO.logger.info(f"成功拖拽元素从 {start_element} 到 {end_element}")
+            INFO.logger.info(f"Successfully dragged the element from {start_element} to {end_element}.")
         except WebDriverException as e:
-            ERROR.logger.error(f"拖拽元素失败: 从 {start_element} 到 {end_element}, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to drag the element from {start_element} to {end_element}, error message: {e}")
             raise
         return self
 
     def scroll(self, start_element: WebElement, end_element: WebElement, duration: Optional[int] = None) -> Self:
         """
-        作用: 滚动元素
-        场景: 用于从一个元素的位置滚动到另一个元素的位置，适用于浏览长页面或列表.
+        Function: Scrolls from one element to another.
+        Scenario: Applicable to scenarios where you need to scroll from one element to another.
+        e.g. 'Scroll to the bottom of the page'.
 
-        :param start_element: 起始元素
-        :param end_element: 结束元素
-        :param duration: 滚动持续时间（毫秒）
-        :return: BaseCase对象, 允许链式调用
+        :param start_element: The element from which to begin scrolling (center of element).
+        :param end_element: The element to scroll to (center of element).
+        :param duration: Duration of the scroll (ms), defaults to 600ms.
+        :return: Self instance.
         :Usage:
             self.scroll(el1, el2, 1000)
         """
         try:
             self.driver.scroll(start_element, end_element, duration)
-            INFO.logger.info(f"成功滚动屏幕从 {start_element} 到 {end_element}")
+            INFO.logger.info(f"Successfully scrolled from {start_element} to {end_element}.")
         except WebDriverException as e:
-            ERROR.logger.error(f"滚动屏幕失败: 从 {start_element} 到 {end_element}, 错误信息: {e}")
+            ERROR.logger.error(f"Failed to scroll from {start_element} to {end_element}, error message: {e}")
             raise
         return self
 
     def swipe(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: int = None) -> Self:
         """
-        作用: 滑动屏幕
-        场景: 适用于需要缓慢滑动或精确控制滑动速度的场景.
+        Function: Slowly slide the screen from one point to another.
+        Scenario: Applicable to scenarios where you need to slide slowly or control the sliding speed precisely.
+        e.g. browsing content or scrolling pages.
 
-        :param start_x: 起始X坐标
-        :param start_y: 起始Y坐标
-        :param end_x: 结束X坐标
-        :param end_y: 结束Y坐标
-        :param duration: 持续时间（毫秒）
+        :param start_x: Starting X coordinate.
+        :param start_y: Starting Y coordinate.
+        :param end_x: Ending X coordinate.
+        :param end_y: Ending Y coordinate.
+        :param duration: Duration of the swipe (ms).
         :Usage:
             self.swipe(100, 200, 300, 400, 1000)
         """
         try:
             self.driver.swipe(start_x, start_y, end_x, end_y, duration)
-            INFO.logger.info(f"成功滑动屏幕从 ({start_x}, {start_y}) 到 ({end_x}, {end_y}) 持续时间: {duration}ms")
+            INFO.logger.info(
+                f"Successfully swiped the screen from ({start_x}, {start_y}) to ({end_x}, {end_y}), duration: {duration} ms.")
         except WebDriverException as e:
-            ERROR.logger.error(f"滑动屏幕失败: 从 ({start_x}, {start_y}) 到 ({end_x}, {end_y}), 错误信息: {e}")
+            ERROR.logger.error(
+                f"Failed to swipe the screen from ({start_x}, {start_y}) to ({end_x}, {end_y}), error message: {e}")
             raise
         return self
 
     def flick(self, start_x: int, start_y: int, end_x: int, end_y: int) -> Self:
         """
-        作用: 快速滑动屏幕
-        场景: 适用于需要快速滑动屏幕的场景，例如快速滚动列表.
+        Function: Quickly flick the screen from one point to another.
+        Scenario: Applicable to scenarios where you need to quickly scroll the screen.
+        e.g. quickly browse a long list or quickly switch images.
 
-        :param start_x: 起始X坐标
-        :param start_y: 起始Y坐标
-        :param end_x: 结束X坐标
-        :param end_y: 结束Y坐标
+        :param start_x: Starting X coordinate.
+        :param start_y: Starting Y coordinate.
+        :param end_x: Ending X coordinate.
+        :param end_y: Ending Y coordinate.
         :Usage:
             self.flick(100, 200, 300, 400)
         """
         try:
             self.driver.flick(start_x, start_y, end_x, end_y)
-            INFO.logger.info(f"成功快速滑动屏幕从 ({start_x}, {start_y}) 到 ({end_x}, {end_y})")
+            INFO.logger.info(f"Successfully flicked the screen from ({start_x}, {start_y}) to ({end_x}, {end_y}).")
         except WebDriverException as e:
-            ERROR.logger.error(f"快速滑动屏幕失败: 从 ({start_x}, {start_y}) 到 ({end_x}, {end_y}), 错误信息: {e}")
+            ERROR.logger.error(
+                f"Failed to flick the screen from ({start_x}, {start_y}) to ({end_x}, {end_y}), error message: {e}")
             raise
         return self

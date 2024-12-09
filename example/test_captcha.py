@@ -46,8 +46,7 @@ class TestExample(BaseCaseWeb):
             # 解析需要点击的文字序列
             text_sequence = captcha_tool.parse_captcha_text(text_captcha)
             print(f"需要点击的文字序列: {text_sequence}")
-            width, height = self.driver.get_window_size().values()
-            print("当前窗口宽高", width, height)
+            width, height = self.get_window_size().values()
 
             # 点击文字
             # captcha_tool.click_text_positions(text_positions, text_sequence)
