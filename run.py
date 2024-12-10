@@ -1,7 +1,18 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+"""
+@ Date        : 12/10/2024 10:44 PM
+@ Author      : Administrator
+@ File        : run.py
+@ Description : Test execution entry file.
+"""
 import os
+import shutil
 import traceback
 import pyfiglet
 import pytest
+from common.setting import Settings
+from utils import config
 from utils.other_tool.models import NotificationType
 from utils.other_tool.allure_data.allure_report_data import AllureFileClean
 from utils.log_tool.log_control import INFO, ERROR
@@ -9,46 +20,48 @@ from utils.notify_tool.send_wechat import WeChatSend
 from utils.notify_tool.send_ding import DingTalkSendMsg
 from utils.notify_tool.send_mail import SendEmail
 from utils.notify_tool.send_lark import FeiShuTalkChatBot
-from utils import config
 
 
 def run():
     try:
-        # 打印项目信息
+        # Print the project name in ASCII art.
         ascii_banner = pyfiglet.figlet_format(config.project_name)
         print(ascii_banner)
-        INFO.logger.info(f"开始执行{config.project_name}项目...")
+        INFO.logger.info(f"Start running test cases for project: {config.project_name}...")
 
-        # 创建报告目录
-        for dir_path in ['./report/tmp', './report/html']:
+        settings = Settings()
+        report_tmp = settings.get_global_config('report_tmp')
+        report_html = settings.get_global_config('report_html')
+        # Clean up the report directory.
+        for dir_path in [report_tmp, report_html]:
             if not os.path.exists(dir_path):
-                os.makedirs(dir_path)
+                os.makedirs(dir_path, exist_ok=True)
+                INFO.logger.info(f"Report child directory created: {dir_path}.")
+            else:
+                shutil.rmtree(dir_path)
+                os.makedirs(dir_path, exist_ok=True)
+                INFO.logger.info("Report files cleanup completed.")
 
-        # 运行测试
-        pytest_args = [
-            'tests/test_web/test_web_login.py',
-            '-v',
-            '--alluredir=./report/tmp',
-            '--clean-alluredir',
-            '--capture=no',
-        ]
+        # Run test cases.
+        pytest_args = ['-s', '-W', 'ignore:Module already imported:pytest.PytestWarning',
+                       '--alluredir', './report/tmp', "--clean-alluredir"]
 
         try:
             pytest_args.extend(['-n', 'auto'])
         except ImportError:
-            INFO.logger.warning("pytest-xdist未安装. 按顺序运行测试.")
+            INFO.logger.warning("The pytest-xdist plugin is not installed, so the test cases will be executed serially.")
 
         exit_code = pytest.main(pytest_args)
 
         if exit_code != 0:
-            ERROR.logger.error(f"测试执行失败，退出码: {exit_code}")
+            ERROR.logger.error(f"Test execution failed with exit code: {exit_code}.")
             # 不要在这里直接返回，继续尝试生成报告
 
-        # 生成报告
-        INFO.logger.info("生成 Allure 报告...")
+        # Generate Allure report.
+        INFO.logger.info("Generating Allure report...")
         os.system(f"allure generate ./report/tmp -o ./report/html --clean")
 
-        # 发送通知
+        # Send notification.
         if config.notification_type != NotificationType.DEFAULT.value:
             try:
                 allure_data = AllureFileClean().get_case_count()
@@ -62,21 +75,21 @@ def run():
                 if notification_func:
                     notification_func()
             except Exception as e:
-                ERROR.logger.error(f"发送通知失败: {str(e)}")
+                ERROR.logger.error(f"Failed to send notification: {str(e)}")
 
-        # 启动报告服务
-        INFO.logger.info("启动 Allure 报告服务...")
+        # Start Allure report service.
+        INFO.logger.info("Starting Allure report service...")
         os.system(f"allure serve ./report/tmp -p 53230")
 
     except Exception as e:
-        ERROR.logger.error(f"测试执行失败: {str(e)}")
+        ERROR.logger.error(f"An unknown exception occurred, error message: {str(e)}")
         ERROR.logger.error(traceback.format_exc())
-        # 尝试发送错误邮件，但不抛出新的异常
+        # Send error email.
         try:
             send_email = SendEmail(AllureFileClean.get_case_count())
             send_email.error_mail(traceback.format_exc())
         except Exception as mail_error:
-            ERROR.logger.error(f"发送错误邮件失败: {str(mail_error)}")
+            ERROR.logger.error(f"Failed to send error email: {str(mail_error)}")
         raise
 
 

@@ -1,18 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 """
-@ Date        : 2024/11/6 上午12:09
-@ Author      : Poco Ray
+@ Date        : 12/10/2024 10:55 AM
+@ Author      : Administrator
 @ File        : __init__.py
-@ Description : 读取config.yaml配置文件
+@ Description : Read the 'config.yaml' configuration file.
 """
-from utils.read_tool.read_file import YamlReader
-from common.setting import ensure_path_sep
+from common.setting import Settings
 from utils.other_tool.models import Config
+from utils.read_tool.read_file import YamlReader
 
+settings = Settings()
 try:
-    _data = YamlReader(ensure_path_sep("/common/config.yaml")).read_yaml()
+    _data = YamlReader(settings.get_global_config('config_dir')).read_yaml()
 except FileNotFoundError:
-    _data = {}  # 如果文件不存在，使用空字典作为默认值
+    _data = {}  # If the file does not exist, set it to an empty dictionary.
 
 config = Config(**_data)
+
+if __name__ == '__main__':
+    print(config)

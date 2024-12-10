@@ -6,7 +6,6 @@
 @ File        : base_case.py
 @ Description : Test case base class.
 """
-
 import base64
 import os
 import time
@@ -28,8 +27,8 @@ from typing import Any, List, Optional, Self, Tuple, ClassVar, Union
 class BaseCase:
     """ Class variable declaration. """
     driver: WebDriver or AppDriver = None  # Test driver object.
-    _settings: ClassVar[Settings] = Settings()  # Global Configuration Object.
-    _wait: Optional[WebDriverWait] = None  # Wait object.
+    _settings: ClassVar[Settings] = Settings()
+    _wait: Optional[WebDriverWait] = None
     _timeout: int = _settings.global_config['webdriver_timeout']
     _poll_frequency: float = _settings.global_config['webdriver_poll_frequency']
     screenshots_path = _settings.global_config['screenshots_dir']
@@ -51,57 +50,61 @@ class BaseCase:
         # Clean up historical data.
         if self._settings.global_config.get('clean_screenshots', True):
             self._clean_screenshots()
-        if self._settings.global_config.get('clean_logs', True):
-            self._clean_logs()
         if self._settings.global_config.get('clean_downloads', True):
             self._clean_downloads()
+        if self._settings.global_config.get('clean_logs', True):
+            self._clean_logs()
 
     def _clean_screenshots(self):
         """ Clean up the screenshot file. """
-        if os.path.exists(self.screenshots_path):
+        if not os.path.exists(self.screenshots_path):
+            os.makedirs(self.screenshots_path, exist_ok=True)
+            INFO.logger.info(f"Screenshot directory created: {self.screenshots_path}")
+        else:
             shutil.rmtree(self.screenshots_path)
-        os.makedirs(self.screenshots_path, exist_ok=True)
-        INFO.logger.info("Screenshot files cleanup completed.")
+            os.makedirs(self.screenshots_path, exist_ok=True)
+            INFO.logger.info("Screenshot files cleanup completed.")
 
     def _clean_downloads(self):
         """ Clean up the download file. """
-
-        if os.path.exists(self.downloads_path):
+        if not os.path.exists(self.downloads_path):
+            os.makedirs(self.downloads_path, exist_ok=True)
+            INFO.logger.info(f"Download directory created: {self.downloads_path}")
+        else:
             shutil.rmtree(self.downloads_path)
-        os.makedirs(self.downloads_path, exist_ok=True)
-        INFO.logger.info("Download files cleanup completed.")
+            os.makedirs(self.downloads_path, exist_ok=True)
+            INFO.logger.info("Download files cleanup completed.")
 
     def _clean_logs(self):
         """ Clean up the log file. """
-        try:
+        if not os.path.exists(self.logs_path):
+            os.makedirs(self.logs_path, exist_ok=True)
+            INFO.logger.info(f"Log directory created: {self.logs_path}")
+        else:
+            try:
+                today = datetime.now().date()
+                for filename in os.listdir(self.logs_path):
+                    if not filename.endswith('.log'):
+                        continue
 
-            if not os.path.exists(self.logs_path):
-                os.makedirs(self.logs_path)
-                return
+                    file_path = os.path.join(self.logs_path, filename)
+                    try:
+                        # Extract the date from the file name. (e.g.: xxx-2024-01-01.log)
+                        date_str = filename.split('-', 1)[1].split('.')[0]
+                        file_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
-            today = datetime.now().date()
-            for filename in os.listdir(self.logs_path):
-                if not filename.endswith('.log'):
-                    continue
+                        # If file_date's not today's log, delete it.
+                        if file_date < today:
+                            os.remove(file_path)
+                            INFO.logger.info(f"Deleted history log file: {filename}.")
+                    except (ValueError, IndexError):
+                        continue
+                    except Exception as e:
+                        ERROR.logger.error(f"Error occurred while cleaning log file: {str(e)}")
 
-                file_path = os.path.join(self.logs_path, filename)
-                try:
-                    # Extract the date from the file name.（e.g.: xxx-2024-01-01.log）
-                    date_str = filename.split('-', 1)[1].split('.')[0]
-                    file_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-
-                    # If file_date's not today's log, delete it.
-                    if file_date < today:
-                        os.remove(file_path)
-                        INFO.logger.info(f"Deleted history log file: {filename}.")
-                except (ValueError, IndexError):
-                    continue
-                except Exception as e:
-                    ERROR.logger.error(f"Error occurred while cleaning log file: {str(e)}")
-
-            INFO.logger.info("Log files cleanup completed.")
-        except Exception as e:
-            ERROR.logger.error(f"Error occurred while cleaning log directory: {str(e)}")
+                INFO.logger.info("Log files cleanup completed.")
+            except Exception as e:
+                ERROR.logger.error(f"Error occurred while cleaning log directory: {str(e)}")
 
     def take_screenshot(self, name: str) -> Union[str, None]:
         """
