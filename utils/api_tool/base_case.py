@@ -13,6 +13,7 @@ import shutil
 import requests
 from datetime import datetime
 from common.setting import root_path, Settings
+from utils.api_tool.custom_webelement import CustomWebElement
 from utils.log_tool.log_control import INFO, ERROR
 from utils.api_tool.selector_util import SelectorUtil
 from selenium.webdriver.support.ui import WebDriverWait
@@ -604,7 +605,7 @@ class BaseCase:
             raise
         return self
 
-    def find_element(self, selector: str, by: str = 'css_selector', timeout: Optional[int] = None) -> WebElement:
+    def find_element(self, selector: str, by: str = 'css_selector', timeout: Optional[int] = None) -> CustomWebElement:
         """
         Find a single element.
 
@@ -627,7 +628,7 @@ class BaseCase:
                 EC.presence_of_element_located(locator)
             )
             INFO.logger.info(f"Successfully found the element: {selector} (by={by}).")
-            return element
+            return CustomWebElement(self.driver, element.id)
         except TimeoutException:
             ERROR.logger.error(f"Timeout when finding the element: {selector} (by={by}).")
             self.take_screenshot("find_element_timeout")
@@ -929,6 +930,69 @@ class BaseCase:
             self.take_screenshot("execute_script_error")
             raise
 
+    def scroll_to(self, x_offset: Optional[int] = None, y_offset: Optional[int] = None,
+                  element: Optional[WebElement] = None) -> None:
+        """
+        Scroll the page by the specified offsets or to the specified element.
+
+        :param x_offset: Horizontal offset. Positive values scroll right, negative values scroll left.
+        :param y_offset: Vertical offset. Positive values scroll down, negative values scroll up.
+        :param element: WebElement to scroll to. The element will be centered vertically.
+        :Usage:
+            self.scroll_to(x_offset=100, y_offset=200)
+            self.scroll_to(element=some_element)
+        """
+        try:
+            self.switch_to_default_frame()  # Switch to the default content
+            if element:
+                # Scroll to the element and center it vertically
+                self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+                INFO.logger.info(f"Successfully scrolled to the element: {element}.")
+            elif x_offset is not None or y_offset is not None:
+                # Scroll by the specified offsets
+                x_offset = x_offset or 0
+                y_offset = y_offset or 0
+                self.driver.execute_script(f"window.scrollBy({x_offset}, {y_offset});")
+                INFO.logger.info(f"Successfully scrolled by offsets: x={x_offset}, y={y_offset}.")
+            else:
+                raise ValueError("Either x_offset/y_offset or element must be provided.")
+        except Exception as e:
+            ERROR.logger.error(f"Failed to scroll, error message: {str(e)}")
+            self.take_screenshot("scroll_error")
+            raise
+
+    def scroll_to_top(self) -> None:
+        """
+        Scroll to the top of the page.
+
+        :Usage:
+            self.scroll_to_top()
+        """
+        try:
+            self.switch_to_default_frame()  # Switch to the default content
+            self.driver.execute_script("window.scrollTo(0, 0);")
+            INFO.logger.info("Successfully scrolled to the top of the page.")
+        except Exception as e:
+            ERROR.logger.error(f"Failed to scroll to the top of the page, error message: {str(e)}")
+            self.take_screenshot("scroll_to_top_error")
+            raise
+
+    def scroll_to_bottom(self) -> None:
+        """
+        Scroll to the bottom of the page.
+
+        :Usage:
+            self.scroll_to_bottom()
+        """
+        try:
+            self.switch_to_default_frame()  # Switch to the default content
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            INFO.logger.info("Successfully scrolled to the bottom of the page.")
+        except Exception as e:
+            ERROR.logger.error(f"Failed to scroll to the bottom of the page, error message: {str(e)}")
+            self.take_screenshot("scroll_to_bottom_error")
+            raise
+
     @property
     def current_url(self) -> str:
         """
@@ -1001,7 +1065,7 @@ class BaseCase:
 
     def tap(self, pos: List[Tuple[int, int]], duration: Optional[int] = None) -> Self:
         """
-        Function: Simulates a click operation at the specified coordinates.
+        Function: Simulates a click operation at the specified coordinates. (App only)
         Scenario: Applicable to scenarios where multiple click operations need to be simulated at different screen locations.
         e.g. 'Red envelope rain'.
 
@@ -1013,10 +1077,12 @@ class BaseCase:
         """
         if len(pos) > 5:
             raise ValueError("The maximum number of taps is 5.")
-
         try:
-            self.driver.tap(pos, duration)
-            INFO.logger.info(f"Successfully tapped the positions: {pos}.")
+            if isinstance(self.driver, AppDriver):
+                self.driver.tap(pos, duration)
+                INFO.logger.info(f"Successfully tapped the positions: {pos}.")
+            else:
+                raise NotImplementedError("The Web end does not support the 'tap' method!")
         except WebDriverException as e:
             ERROR.logger.error(f"Failed to tap the positions: {pos}, error message: {e}")
             raise
@@ -1024,7 +1090,7 @@ class BaseCase:
 
     def drag_and_drop(self, start_element: WebElement, end_element: WebElement, pause: Optional[float] = None) -> Self:
         """
-        Function: Drag the origin element to the destination element.
+        Function: Drag the origin element to the destination element. (App only)
         Scenario: Applicable to scenarios where elements need to be dragged and dropped.
         e.g. 'Slider captcha'.
 
@@ -1036,8 +1102,11 @@ class BaseCase:
             self.drag_and_drop(el1, el2, 0.2)
         """
         try:
-            self.driver.drag_and_drop(start_element, end_element, pause)
-            INFO.logger.info(f"Successfully dragged the element from {start_element} to {end_element}.")
+            if isinstance(self.driver, AppDriver):
+                self.driver.drag_and_drop(start_element, end_element, pause)
+                INFO.logger.info(f"Successfully dragged the element from {start_element} to {end_element}.")
+            else:
+                raise NotImplementedError("The Web end does not support the 'drag_and_drop' method!")
         except WebDriverException as e:
             ERROR.logger.error(f"Failed to drag the element from {start_element} to {end_element}, error message: {e}")
             raise
@@ -1045,7 +1114,7 @@ class BaseCase:
 
     def scroll(self, start_element: WebElement, end_element: WebElement, duration: Optional[int] = None) -> Self:
         """
-        Function: Scrolls from one element to another.
+        Function: Scrolls from one element to another. (App only)
         Scenario: Applicable to scenarios where you need to scroll from one element to another.
         e.g. 'Scroll to the bottom of the page'.
 
@@ -1057,8 +1126,11 @@ class BaseCase:
             self.scroll(el1, el2, 1000)
         """
         try:
-            self.driver.scroll(start_element, end_element, duration)
-            INFO.logger.info(f"Successfully scrolled from {start_element} to {end_element}.")
+            if isinstance(self.driver, AppDriver):
+                self.driver.scroll(start_element, end_element, duration)
+                INFO.logger.info(f"Successfully scrolled from {start_element} to {end_element}.")
+            else:
+                raise NotImplementedError("The Web end does not support the 'scroll' method!")
         except WebDriverException as e:
             ERROR.logger.error(f"Failed to scroll from {start_element} to {end_element}, error message: {e}")
             raise
@@ -1066,7 +1138,7 @@ class BaseCase:
 
     def swipe(self, start_x: int, start_y: int, end_x: int, end_y: int, duration: int = None) -> Self:
         """
-        Function: Slowly slide the screen from one point to another.
+        Function: Slowly slide the screen from one point to another. (App only)
         Scenario: Applicable to scenarios where you need to slide slowly or control the sliding speed precisely.
         e.g. browsing content or scrolling pages.
 
@@ -1079,18 +1151,21 @@ class BaseCase:
             self.swipe(100, 200, 300, 400, 1000)
         """
         try:
-            self.driver.swipe(start_x, start_y, end_x, end_y, duration)
-            INFO.logger.info(
-                f"Successfully swiped the screen from ({start_x}, {start_y}) to ({end_x}, {end_y}), duration: {duration} ms.")
+            if isinstance(self.driver, AppDriver):
+                self.driver.swipe(start_x, start_y, end_x, end_y, duration)
+                INFO.logger.info(
+                    f"Successfully swiped from ({start_x}, {start_y}) to ({end_x}, {end_y}) with duration {duration}ms.")
+            else:
+                raise NotImplementedError("The Web end does not support the 'swipe' method!")
         except WebDriverException as e:
             ERROR.logger.error(
-                f"Failed to swipe the screen from ({start_x}, {start_y}) to ({end_x}, {end_y}), error message: {e}")
+                f"Failed to swipe from ({start_x}, {start_y}) to ({end_x}, {end_y}), error message: {str(e)}")
             raise
         return self
 
     def flick(self, start_x: int, start_y: int, end_x: int, end_y: int) -> Self:
         """
-        Function: Quickly flick the screen from one point to another.
+        Function: Quickly flick the screen from one point to another. (App only)
         Scenario: Applicable to scenarios where you need to quickly scroll the screen.
         e.g. quickly browse a long list or quickly switch images.
 
@@ -1102,10 +1177,12 @@ class BaseCase:
             self.flick(100, 200, 300, 400)
         """
         try:
-            self.driver.flick(start_x, start_y, end_x, end_y)
-            INFO.logger.info(f"Successfully flicked the screen from ({start_x}, {start_y}) to ({end_x}, {end_y}).")
+            if isinstance(self.driver, AppDriver):
+                self.driver.flick(start_x, start_y, end_x, end_y)
+                INFO.logger.info(f"Successfully flicked from ({start_x}, {start_y}) to ({end_x}, {end_y}).")
+            else:
+                raise NotImplementedError("The Web end does not support the 'flick' method!")
         except WebDriverException as e:
-            ERROR.logger.error(
-                f"Failed to flick the screen from ({start_x}, {start_y}) to ({end_x}, {end_y}), error message: {e}")
+            ERROR.logger.error(f"Failed to flick from ({start_x}, {start_y}) to ({end_x}, {end_y}), error message: {e}")
             raise
         return self

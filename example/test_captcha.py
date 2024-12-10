@@ -60,3 +60,21 @@ class TestExample(BaseCaseWeb):
             print(f"验证码处理失败: {str(e)}")
             self.take_screenshot("验证码处理失败")
             raise
+
+    def test_slider_captcha(self):
+        self.open("https://www.douban.com/")
+        self.switch_to_frame(0)
+        self.click("li:contains('密码登录')")
+        self.type("input[name='username']", "1234567890@qq.com")
+        self.type("input[name='password']", "test123456")
+        self.click("a:contains('登录豆瓣')")
+        self.scroll_to_top()
+        self.switch_to_frame(0)
+        self.switch_to_frame(self.find_element("iframe#tcaptcha_iframe_dy"))
+        self.sleep(2)
+        self.find_element('/html/body/div/div[3]/div[2]/div[1]/div[2]/div').screenshot("captcha.png")
+
+
+        # 在控制台中验证xpath元素：$x("/html/body/div/div[3]/div[2]/div[6]")
+        self.find_element('/html/body/div/div[3]/div[2]/div[6]', 'xpath')
+        self.sleep(3)

@@ -78,6 +78,8 @@ def web_driver():
 
         service = Service(executable_path=driver_path)
         options = WebDriver.ChromeOptions()
+        # Not display "Chrome正受到自动测试软件的控制".
+        options.add_experimental_option("excludeSwitches", ['enable-automation'])
         options.add_argument('--start-maximized')
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--no-sandbox')
